@@ -6,6 +6,7 @@
 [![Code Coverage][ico-code-coverage]][link-code-coverage]
 [![Mutation testing][ico-infection]][link-infection]
 
+See where customers are coming from by attributing conversions directly in your Sylius store
 
 [ico-version]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/v/stable
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license
