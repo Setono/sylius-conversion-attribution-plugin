@@ -13,3 +13,15 @@ sylius_shop:
 
 sylius_api:
     enabled: true
+    
+sylius_customer:
+    resources:
+        customer:
+            classes:
+                model: Setono\SyliusConversionAttributionPlugin\Tests\Application\Model\Customer
+
+sylius_order:
+    resources:
+        order:
+            classes:
+                model: Setono\SyliusConversionAttributionPlugin\Tests\Application\Model\Order

@@ -4,10 +4,30 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin;
 
+use Setono\CompositeCompilerPass\CompositeCompilerPass;
 use Sylius\Bundle\CoreBundle\Application\SyliusPluginTrait;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Sylius\Bundle\ResourceBundle\AbstractResourceBundle;
+use Sylius\Bundle\ResourceBundle\SyliusResourceBundle;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
-final class SetonoSyliusConversionAttributionPlugin extends Bundle
+final class SetonoSyliusConversionAttributionPlugin extends AbstractResourceBundle
 {
     use SyliusPluginTrait;
+
+    public function getSupportedDrivers(): array
+    {
+        return [
+            SyliusResourceBundle::DRIVER_DOCTRINE_ORM,
+        ];
+    }
+
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+
+        $container->addCompilerPass(new CompositeCompilerPass(
+            'setono_sylius_conversion_attribution.source_matcher.composite',
+            'setono_sylius_conversion_attribution.source_matcher',
+        ));
+    }
 }

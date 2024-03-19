@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <service id="setono_sylius_conversion_attribution.event_subscriber.add_client_id"
+                 class="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber">
+            <argument type="service" id="setono_client.client_context.default"/>
+
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <service id="setono_sylius_conversion_attribution.event_subscriber.store_source"
+                 class="Setono\SyliusConversionAttributionPlugin\EventSubscriber\StoreSourceSubscriber">
+            <argument type="service" id="doctrine"/>
+            <argument type="service" id="setono_client.cookie_provider.default"/>
+            <argument type="service" id="setono_sylius_conversion_attribution.factory.source"/>
+            <argument>%setono_sylius_conversion_attribution.session_timeout%</argument>
+
+            <tag name="kernel.event_subscriber"/>
+        </service>
+    </services>
+</container>
