@@ -36,7 +36,7 @@ final class ReferrerParser implements ReferrerParserInterface
             return Referrer::invalid();
         }
 
-        return new Referrer(Medium::from($referrerLookup['medium']), $referrerLookup['source']);
+        return new Referrer($referrerLookup['medium'], $referrerLookup['source']);
     }
 
     private function lookup(string $host, string $path): ?array

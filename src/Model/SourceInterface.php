@@ -24,5 +24,9 @@ interface SourceInterface extends ResourceInterface, \Stringable
 
     public function setMedium(?string $medium): void;
 
+    public function getCampaign(): ?string;
+
+    public function setCampaign(?string $campaign): void;
+
     public function getCreatedAt(): \DateTimeImmutable;
 }

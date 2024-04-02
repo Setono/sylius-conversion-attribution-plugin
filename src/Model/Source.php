@@ -18,6 +18,8 @@ class Source implements SourceInterface
 
     protected ?string $medium = null;
 
+    protected ?string $campaign = null;
+
     protected \DateTimeImmutable $createdAt;
 
     public function __construct()
@@ -58,6 +60,10 @@ class Source implements SourceInterface
 
     public function setSource(?string $source): void
     {
+        if (null !== $source) {
+            $source = strtolower($source);
+        }
+
         $this->source = $source;
     }
 
@@ -68,7 +74,21 @@ class Source implements SourceInterface
 
     public function setMedium(?string $medium): void
     {
+        if (null !== $medium) {
+            $medium = strtolower($medium);
+        }
+
         $this->medium = $medium;
+    }
+
+    public function getCampaign(): ?string
+    {
+        return $this->campaign;
+    }
+
+    public function setCampaign(?string $campaign): void
+    {
+        $this->campaign = $campaign;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

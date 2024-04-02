@@ -19,6 +19,7 @@ final class SourceFactory implements SourceFactoryInterface
         private readonly ClientContextInterface $clientContext,
         private readonly ReferrerParserInterface $referrerParser,
         private readonly SourceMatcherInterface $sourceMatcher,
+        private readonly string $defaultSource = 'direct',
     ) {
     }
 
@@ -29,6 +30,7 @@ final class SourceFactory implements SourceFactoryInterface
         Assert::isInstanceOf($obj, SourceInterface::class);
 
         $obj->setClientId($this->clientContext->getClient()->id);
+        $obj->setSource($this->defaultSource);
 
         return $obj;
     }
@@ -43,7 +45,7 @@ final class SourceFactory implements SourceFactoryInterface
         if (null !== $referrer) {
             $parsedReferrer = $this->referrerParser->parse($referrer);
             $obj->setSource($parsedReferrer->source);
-            $obj->setMedium($parsedReferrer->medium->value);
+            $obj->setMedium($parsedReferrer->medium);
         }
 
         $source = $this->sourceMatcher->match($request);

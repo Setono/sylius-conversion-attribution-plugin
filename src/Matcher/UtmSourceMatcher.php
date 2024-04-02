@@ -12,9 +12,14 @@ final class UtmSourceMatcher implements SourceMatcherInterface
     {
         $source = $request->query->get('utm_source');
         $medium = $request->query->get('utm_medium');
+        $campaign = $request->query->get('utm_campaign');
 
         if (is_string($source)) {
-            return new Source($source, is_string($medium) ? $medium : null);
+            return new Source(
+                $source,
+                is_string($medium) ? $medium : null,
+                is_string($campaign) ? $campaign : null,
+            );
         }
 
         return null;

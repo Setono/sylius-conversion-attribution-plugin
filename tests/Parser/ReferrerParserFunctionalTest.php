@@ -6,7 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Parser;
 
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer;
-use Setono\SyliusConversionAttributionPlugin\Parser\Medium;
+use Setono\SyliusConversionAttributionPlugin\Parser\Referrer;
 use Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParser;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Cache\Adapter\PhpArrayAdapter;
@@ -41,7 +41,7 @@ final class ReferrerParserFunctionalTest extends TestCase
 
         $parsedReferrer = $parser->parse($referrer);
 
-        self::assertSame($expectedMedium, $parsedReferrer->medium->value);
+        self::assertSame($expectedMedium, $parsedReferrer->medium);
         self::assertSame($expectedSource, $parsedReferrer->source);
     }
 
@@ -56,7 +56,7 @@ final class ReferrerParserFunctionalTest extends TestCase
 
         $parsedReferrer = $parser->parse($referrer);
 
-        self::assertSame(Medium::unknown, $parsedReferrer->medium);
+        self::assertSame(Referrer::MEDIUM_UNKNOWN, $parsedReferrer->medium);
     }
 
     /**

@@ -5,6 +5,11 @@
         <service id="setono_sylius_conversion_attribution.source_matcher.composite"
                  class="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
 
+        <service id="setono_sylius_conversion_attribution.source_matcher.google_ads"
+                 class="Setono\SyliusConversionAttributionPlugin\Matcher\GoogleAdsSourceMatcher">
+            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="64"/>
+        </service>
+
         <service id="setono_sylius_conversion_attribution.source_matcher.utm"
                  class="Setono\SyliusConversionAttributionPlugin\Matcher\UtmSourceMatcher">
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="32"/>
