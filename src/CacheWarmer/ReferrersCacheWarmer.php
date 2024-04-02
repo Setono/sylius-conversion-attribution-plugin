@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\CacheWarmer;
 
-use Symfony\Component\Cache\Adapter\AdapterInterface;
+use Symfony\Component\Cache\Adapter\NullAdapter;
 use Symfony\Component\Cache\Adapter\PhpArrayAdapter;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
 final class ReferrersCacheWarmer implements CacheWarmerInterface
 {
-    public function __construct(private readonly AdapterInterface $cache)
+    public function __construct(private readonly string $phpArrayFile)
     {
     }
 
@@ -21,9 +21,7 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface
 
     public function warmUp(string $cacheDir): array
     {
-        if (!$this->cache instanceof PhpArrayAdapter) {
-            return [];
-        }
+        $cache = new PhpArrayAdapter($this->phpArrayFile, new NullAdapter());
 
         $json = file_get_contents('https://s3-eu-west-1.amazonaws.com/snowplow-hosted-assets/third-party/referer-parser/referers-latest.json');
         if (false === $json) {
@@ -52,6 +50,6 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface
             }
         }
 
-        return $this->cache->warmUp($values);
+        return $cache->warmUp($values);
     }
 }

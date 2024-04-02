@@ -21,7 +21,7 @@ final class ReferrerParserFunctionalTest extends TestCase
     {
         self::$cache = new PhpArrayAdapter(self::$cacheFile, new FilesystemAdapter());
 
-        $referrersCacheWarmer = new ReferrersCacheWarmer(self::$cache);
+        $referrersCacheWarmer = new ReferrersCacheWarmer(self::$cacheFile);
         $referrersCacheWarmer->warmUp(__DIR__);
     }
 

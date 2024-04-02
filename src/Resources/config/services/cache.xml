@@ -5,11 +5,11 @@
         <parameter key="setono_sylius_conversion_attribution.referrers.cache.file">%kernel.cache_dir%/referrers.php</parameter>
     </parameters>
     <services>
-        <service id="setono_sylius_conversion_attribution.cache_warmer.referrers"
-                 class="Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer">
+        <service id="setono_sylius_conversion_attribution.referrers.cache.adapter"
+                 class="Symfony\Component\Cache\Adapter\PhpArrayAdapter">
+            <factory class="Symfony\Component\Cache\Adapter\PhpArrayAdapter" method="create"/>
             <argument>%setono_sylius_conversion_attribution.referrers.cache.file%</argument>
-
-            <tag name="kernel.cache_warmer"/>
+            <argument type="service" id="cache.system"/>
         </service>
     </services>
 </container>
