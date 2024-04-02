@@ -43,7 +43,7 @@ final class SourceFactory implements SourceFactoryInterface
         if (null !== $referrer) {
             $parsedReferrer = $this->referrerParser->parse($referrer);
             $obj->setSource($parsedReferrer->source);
-            $obj->setMedium($parsedReferrer->medium);
+            $obj->setMedium($parsedReferrer->medium->value);
         }
 
         $source = $this->sourceMatcher->match($request);

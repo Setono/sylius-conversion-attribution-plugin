@@ -3,6 +3,8 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service id="setono_sylius_conversion_attribution.parser.referrer"
-                 class="Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParser"/>
+                 class="Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParser">
+            <argument type="service" id="setono_sylius_conversion_attribution.cache_warmer.referrers.cache.adapter"/>
+        </service>
     </services>
 </container>

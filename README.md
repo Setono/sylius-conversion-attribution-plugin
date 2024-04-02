@@ -8,6 +8,8 @@
 
 See where customers are coming from by attributing conversions directly in your Sylius store
 
+**NOTICE** This plugin only works 100% with OPCache enabled since we use the `PhpArrayAdapter` to warm up the cache, and only it's available.
+
 [ico-version]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/v/stable
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license
 [ico-github-actions]: https://github.com/Setono/sylius-conversion-attribution-plugin/workflows/build/badge.svg
