@@ -27,6 +27,11 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
 
         $loader->load('services.xml');
 
-        $this->registerResources('setono_sylius_conversion_attribution', SyliusResourceBundle::DRIVER_DOCTRINE_ORM, $config['resources'], $container);
+        $this->registerResources(
+            'setono_sylius_conversion_attribution',
+            SyliusResourceBundle::DRIVER_DOCTRINE_ORM,
+            $config['resources'],
+            $container,
+        );
     }
 }
