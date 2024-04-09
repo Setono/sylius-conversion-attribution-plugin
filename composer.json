@@ -10,8 +10,8 @@
     "require": {
         "php": ">=8.1",
         "doctrine/persistence": "^2.0 || ^3.0",
-        "setono/client": "dev-master",
-        "setono/client-bundle": "dev-master",
+        "setono/client": "^1.0",
+        "setono/client-bundle": "^1.0@alpha",
         "setono/composite-compiler-pass": "^1.1",
         "sylius/core": "^1.0",
         "sylius/core-bundle": "^1.0",
