@@ -8,7 +8,70 @@
 
 See where customers are coming from by attributing conversions directly in your Sylius store
 
-**NOTICE** This plugin only works 100% with OPCache enabled since we use the `PhpArrayAdapter` to warm up the cache, and only it's available.
+## Installation
+
+### Download plugin
+
+```bash
+composer require setono/sylius-conversion-attribution-plugin
+```
+
+Notice that this also installs the `setono/client-bundle` which is required by this plugin to work properly.
+
+### Extend `Customer` and `Order` entities
+    
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Entity\Customer;
+
+use Doctrine\ORM\Mapping as ORM;
+use Setono\SyliusConversionAttributionPlugin\Model\CustomerInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\CustomerTrait;
+use Sylius\Component\Core\Model\Customer as BaseCustomer;
+
+/**
+ * @ORM\Entity
+ *
+ * @ORM\Table(name="sylius_customer")
+ */
+class Customer extends BaseCustomer implements CustomerInterface
+{
+    use CustomerTrait;
+}
+```
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Entity\Order;
+
+use Doctrine\ORM\Mapping as ORM;
+use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\OrderTrait;
+use Sylius\Component\Core\Model\Order as BaseOrder;
+
+/**
+ * @ORM\Entity
+ *
+ * @ORM\Table(name="sylius_order")
+ */
+class Order extends BaseOrder implements OrderInterface
+{
+    use OrderTrait;
+}
+```
+
+### Migrate your database
+
+```bash
+php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:migrate
+```
 
 [ico-version]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/v/stable
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license
