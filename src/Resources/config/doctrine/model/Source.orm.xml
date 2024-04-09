@@ -7,7 +7,7 @@
     <mapped-superclass name="Setono\SyliusConversionAttributionPlugin\Model\Source"
                        table="setono_sylius_conversion_attribution__source">
         <indexes>
-            <index columns="client_id, created_at"/>
+            <index columns="client_id,created_at"/>
         </indexes>
 
         <id name="id" type="integer">
