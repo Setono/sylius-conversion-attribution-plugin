@@ -55,6 +55,10 @@ final class SourceFactory implements SourceFactoryInterface
             if (null !== $source->medium) {
                 $obj->setMedium($source->medium);
             }
+
+            if (null !== $source->campaign) {
+                $obj->setCampaign($source->campaign);
+            }
         }
 
         return $obj;

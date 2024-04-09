@@ -10,13 +10,16 @@
             <index columns="client_id"/>
         </indexes>
 
-        <id name="id" type="string"/>
+        <id name="id" type="integer">
+            <generator strategy="AUTO"/>
+        </id>
 
         <field name="clientId" column="client_id"/>
 
         <field name="referrer" nullable="true"/>
         <field name="source" nullable="true"/>
         <field name="medium" nullable="true"/>
+        <field name="campaign" nullable="true"/>
         <field name="createdAt" type="datetime"/>
     </mapped-superclass>
 </doctrine-mapping>
