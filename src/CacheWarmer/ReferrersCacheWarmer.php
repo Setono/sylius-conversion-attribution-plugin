@@ -21,8 +21,6 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface
 
     public function warmUp(string $cacheDir): array
     {
-        $cache = new PhpArrayAdapter($this->phpArrayFile, new NullAdapter());
-
         $json = file_get_contents('https://s3-eu-west-1.amazonaws.com/snowplow-hosted-assets/third-party/referer-parser/referers-latest.json');
         if (false === $json) {
             return [];
@@ -50,6 +48,6 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface
             }
         }
 
-        return $cache->warmUp($values);
+        return (new PhpArrayAdapter($this->phpArrayFile, new NullAdapter()))->warmUp($values);
     }
 }
