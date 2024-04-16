@@ -13,6 +13,7 @@
         "setono/client": "^1.0",
         "setono/client-bundle": "^1.0@alpha",
         "setono/composite-compiler-pass": "^1.1",
+        "setono/doctrine-orm-trait": "^1.0",
         "sylius/core": "^1.0",
         "sylius/core-bundle": "^1.0",
         "sylius/resource-bundle": "^1.6",
