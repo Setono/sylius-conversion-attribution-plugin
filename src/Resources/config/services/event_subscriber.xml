@@ -14,6 +14,7 @@
             <argument type="service" id="doctrine"/>
             <argument type="service" id="setono_client.cookie_provider.default"/>
             <argument type="service" id="setono_sylius_conversion_attribution.factory.source"/>
+            <argument type="service" id="setono_bot_detection.bot_detector.default"/>
             <argument>%setono_sylius_conversion_attribution.session_timeout%</argument>
 
             <tag name="kernel.event_subscriber"/>

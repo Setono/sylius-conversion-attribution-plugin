@@ -59,4 +59,5 @@ return [
     Symfony\WebpackEncoreBundle\WebpackEncoreBundle::class => ['all' => true],
     Sylius\Calendar\SyliusCalendarBundle::class => ['all' => true],
     Setono\ClientBundle\SetonoClientBundle::class => ['all' => true],
+    Setono\BotDetectionBundle\SetonoBotDetectionBundle::class => ['all' => true],
 ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\EventSubscriber;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Setono\BotDetectionBundle\BotDetector\BotDetectorInterface;
 use Setono\ClientBundle\CookieProvider\CookieProviderInterface;
 use Setono\SyliusConversionAttributionPlugin\Factory\SourceFactoryInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -17,6 +18,7 @@ final class StoreSourceSubscriber implements EventSubscriberInterface
         private readonly ManagerRegistry $managerRegistry,
         private readonly CookieProviderInterface $cookieProvider,
         private readonly SourceFactoryInterface $sourceFactory,
+        private readonly BotDetectorInterface $botDetector,
         private readonly int $sessionTimeout,
     ) {
     }
@@ -30,7 +32,7 @@ final class StoreSourceSubscriber implements EventSubscriberInterface
 
     public function store(RequestEvent $event): void
     {
-        if (!$event->isMainRequest() || $event->getRequest()->isXmlHttpRequest()) {
+        if (!$event->isMainRequest() || $event->getRequest()->isXmlHttpRequest() || $this->botDetector->isBotRequest($event->getRequest())) {
             return;
         }
 
