@@ -16,9 +16,9 @@
 
         <field name="clientId" column="client_id"/>
 
-        <field name="page" nullable="true"/>
         <field name="ip" nullable="true"/>
         <field name="userAgent" nullable="true"/>
+        <field name="page" nullable="true"/>
         <field name="referrer" nullable="true"/>
         <field name="source" nullable="true"/>
         <field name="medium" nullable="true"/>
