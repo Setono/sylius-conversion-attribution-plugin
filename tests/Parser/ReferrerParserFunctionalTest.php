@@ -64,6 +64,7 @@ final class ReferrerParserFunctionalTest extends TestCase
      */
     public function provideKnownReferrers(): \Generator
     {
+        yield ['https://www.google.com/', 'search', 'Google'];
         yield ['https://www.google.com/search?q=hello+world', 'search', 'Google'];
         yield ['https://www.facebook.com', 'social', 'Facebook'];
         yield ['https://m.facebook.com', 'social', 'Facebook'];
