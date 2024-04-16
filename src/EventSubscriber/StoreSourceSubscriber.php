@@ -30,7 +30,7 @@ final class StoreSourceSubscriber implements EventSubscriberInterface
 
     public function store(RequestEvent $event): void
     {
-        if (!$event->isMainRequest()) {
+        if (!$event->isMainRequest() || $event->getRequest()->isXmlHttpRequest()) {
             return;
         }
 
