@@ -39,15 +39,6 @@ final class SourceFactory implements SourceFactoryInterface
     {
         $obj = $this->createNew();
 
-        $referrer = $request->headers->get('referer');
-        $obj->setReferrer($referrer);
-
-        if (null !== $referrer) {
-            $parsedReferrer = $this->referrerParser->parse($referrer);
-            $obj->setSource($parsedReferrer->source);
-            $obj->setMedium($parsedReferrer->medium);
-        }
-
         $source = $this->sourceMatcher->match($request);
         if (null !== $source) {
             $obj->setSource($source->source);
@@ -59,6 +50,15 @@ final class SourceFactory implements SourceFactoryInterface
             if (null !== $source->campaign) {
                 $obj->setCampaign($source->campaign);
             }
+        }
+
+        $referrer = $request->headers->get('referer');
+        $obj->setReferrer($referrer);
+
+        if (null !== $referrer && null === $obj->getSource() && null === $obj->getMedium()) {
+            $parsedReferrer = $this->referrerParser->parse($referrer);
+            $obj->setSource($parsedReferrer->source);
+            $obj->setMedium($parsedReferrer->medium);
         }
 
         return $obj;
