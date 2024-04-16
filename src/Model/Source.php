@@ -12,6 +12,12 @@ class Source implements SourceInterface
 
     protected ?string $clientId = null;
 
+    protected ?string $ip = null;
+
+    protected ?string $userAgent = null;
+
+    protected ?string $page = null;
+
     protected ?string $referrer = null;
 
     protected ?string $source = null;
@@ -41,6 +47,36 @@ class Source implements SourceInterface
     public function setClientId(?string $clientId): void
     {
         $this->clientId = $clientId;
+    }
+
+    public function getIp(): ?string
+    {
+        return $this->ip;
+    }
+
+    public function setIp(?string $ip): void
+    {
+        $this->ip = $ip;
+    }
+
+    public function getUserAgent(): ?string
+    {
+        return $this->userAgent;
+    }
+
+    public function setUserAgent(?string $userAgent): void
+    {
+        $this->userAgent = $userAgent;
+    }
+
+    public function getPage(): ?string
+    {
+        return $this->page;
+    }
+
+    public function setPage(?string $page): void
+    {
+        $this->page = $page;
     }
 
     public function getReferrer(): ?string

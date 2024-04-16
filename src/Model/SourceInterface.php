@@ -12,6 +12,18 @@ interface SourceInterface extends ResourceInterface, \Stringable
 
     public function setClientId(?string $clientId): void;
 
+    public function getIp(): ?string;
+
+    public function setIp(?string $ip): void;
+
+    public function getUserAgent(): ?string;
+
+    public function setUserAgent(?string $userAgent): void;
+
+    public function getPage(): ?string;
+
+    public function setPage(?string $page): void;
+
     public function getReferrer(): ?string;
 
     public function setReferrer(?string $referrer): void;

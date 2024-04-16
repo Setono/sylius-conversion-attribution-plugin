@@ -38,6 +38,9 @@ final class SourceFactory implements SourceFactoryInterface
     public function createFromRequest(Request $request): SourceInterface
     {
         $obj = $this->createNew();
+        $obj->setPage($request->getUri());
+        $obj->setIp($request->getClientIp());
+        $obj->setUserAgent($request->headers->get('user-agent'));
 
         $source = $this->sourceMatcher->match($request);
         if (null !== $source) {
