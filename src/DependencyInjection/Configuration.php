@@ -57,8 +57,9 @@ final class Configuration implements ConfigurationInterface
                                 ->arrayNode('classes')
                                 ->addDefaultsIfNotSet()
                                 ->children()
-                                    ->scalarNode('model')->defaultValue(Source::class)->cannotBeEmpty()->end()
                                     ->scalarNode('factory')->defaultValue(Factory::class)->cannotBeEmpty()->end()
+                                    ->scalarNode('model')->defaultValue(Source::class)->cannotBeEmpty()->end()
+                                    ->scalarNode('repository')->cannotBeEmpty()->end()
         ;
     }
 }
