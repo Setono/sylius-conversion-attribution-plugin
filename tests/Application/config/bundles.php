@@ -60,4 +60,5 @@ return [
     Sylius\Calendar\SyliusCalendarBundle::class => ['all' => true],
     Setono\ClientBundle\SetonoClientBundle::class => ['all' => true],
     Setono\BotDetectionBundle\SetonoBotDetectionBundle::class => ['all' => true],
+    Setono\TagBagBundle\SetonoTagBagBundle::class => ['all' => true],
 ];

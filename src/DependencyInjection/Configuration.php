@@ -23,6 +23,10 @@ final class Configuration implements ConfigurationInterface
         $rootNode
             ->addDefaultsIfNotSet()
             ->children()
+                ->arrayNode('javascript')
+                    ->info('If you want to enable the injection of javascript (through the tag bag bundle), set this to true. Default is true.')
+                    ->canBeDisabled()
+                ->end()
                 ->arrayNode('source_parameters')
                     ->info('The query parameters to look for when trying to find the source. Notice that utm_source is matched automatically.')
                     ->defaultValue(['ref', 'source'])

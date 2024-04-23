@@ -1,0 +1,5 @@
+setono_sylius_conversion_attribution_shop_track:
+    path: /track
+    methods: [POST]
+    defaults:
+        _controller: setono_sylius_conversion_attribution.controller.action.track
