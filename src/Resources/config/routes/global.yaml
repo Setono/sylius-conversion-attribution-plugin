@@ -1,4 +1,4 @@
-setono_sylius_conversion_attribution_shop_track:
+setono_sylius_conversion_attribution_global_track:
     path: /track
     methods: [POST]
     defaults:
