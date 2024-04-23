@@ -18,6 +18,19 @@ composer require setono/sylius-conversion-attribution-plugin
 
 Notice that this also installs the `setono/client-bundle` which is required by this plugin to work properly.
 
+If you want to use the default javascript injection, you should also install the `setono/tag-bag-bundle`.
+
+See the installation instructions for the `setono/tag-bag-bundle` [here](https://github.com/Setono/TagBagBundle).
+
+### Import routes
+    
+```yaml
+# config/routes/setono_sylius_conversion_attribution.yaml
+
+setono_sylius_conversion_attribution:
+    resource: "@SetonoSyliusConversionAttributionPlugin/Resources/config/routes.yaml"
+```
+
 ### Extend `Customer` and `Order` entities
     
 ```php
