@@ -2,6 +2,9 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
+        <service id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolverInterface"
+                 alias="setono_sylius_conversion_attribution.resolver.client_information"/>
+
         <service id="setono_sylius_conversion_attribution.resolver.client_information"
                  class="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver">
             <argument type="service" id="request_stack"/>

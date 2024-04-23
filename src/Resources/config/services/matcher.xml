@@ -2,6 +2,9 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"
+                 alias="setono_sylius_conversion_attribution.source_matcher.composite"/>
+
         <service id="setono_sylius_conversion_attribution.source_matcher.composite"
                  class="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
 
