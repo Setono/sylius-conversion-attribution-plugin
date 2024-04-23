@@ -2,11 +2,10 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="setono_sylius_conversion_attribution.event_subscriber.add_client_id"
-                 class="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber">
-            <argument type="service" id="setono_client.client_context.default"/>
-
-            <tag name="kernel.event_subscriber"/>
+        <service id="setono_sylius_conversion_attribution.controller.action.track"
+                 class="Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackAction" public="true">
+            <argument type="service" id="setono_sylius_conversion_attribution.factory.source"/>
+            <argument type="service" id="doctrine"/>
         </service>
     </services>
 </container>

@@ -6,9 +6,6 @@
                  class="Setono\SyliusConversionAttributionPlugin\Factory\SourceFactory"
                  decorates="setono_sylius_conversion_attribution.factory.source" decoration-priority="64">
             <argument type="service" id="setono_sylius_conversion_attribution.custom_factory.source.inner"/>
-            <argument type="service" id="setono_client.client_context.default"/>
-            <argument type="service" id="setono_sylius_conversion_attribution.parser.referrer"/>
-            <argument type="service" id="setono_sylius_conversion_attribution.source_matcher.composite"/>
         </service>
     </services>
 </container>
