@@ -63,7 +63,7 @@ JS;
         try {
             $javascript = sprintf(
                 $javascript,
-                $this->urlGenerator->generate('setono_sylius_conversion_attribution_shop_track'),
+                $this->urlGenerator->generate('setono_sylius_conversion_attribution_global_track'),
                 json_encode($clientInformation, \JSON_THROW_ON_ERROR),
             );
         } catch (\JsonException) {
