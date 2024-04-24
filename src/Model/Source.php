@@ -26,7 +26,7 @@ class Source implements SourceInterface
 
     protected ?string $campaign = null;
 
-    protected \DateTimeImmutable $createdAt;
+    protected \DateTimeInterface $createdAt;
 
     public function __construct()
     {
@@ -127,7 +127,7 @@ class Source implements SourceInterface
         $this->campaign = $campaign;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable
+    public function getCreatedAt(): \DateTimeInterface
     {
         return $this->createdAt;
     }
