@@ -19,7 +19,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         /**
          * @psalm-suppress PossiblyNullArgument
          *
-         * @var array{javascript: array{enabled: bool}, source_parameters: list<string>, session_timeout: integer, resources: array} $config
+         * @var array{javascript: array{enabled: bool}, source_parameters: list<string>, session_timeout: int, resources: array} $config
          */
         $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
