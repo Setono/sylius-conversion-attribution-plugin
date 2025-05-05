@@ -9,6 +9,7 @@
     ],
     "require": {
         "php": ">=8.1",
+        "doctrine/orm": "^2.0 || ^3.0",
         "doctrine/persistence": "^2.0 || ^3.0",
         "setono/bot-detection-bundle": "^1.13",
         "setono/client-bundle": "^1.1",
