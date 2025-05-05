@@ -1,7 +1,0 @@
-{
-    "symbol-whitelist": [
-        "Setono\\TagBagBundle\\SetonoTagBagBundle",
-        "Setono\\TagBag\\TagBagInterface",
-        "Setono\\TagBag\\Tag\\InlineScriptTag"
-    ]
-}
