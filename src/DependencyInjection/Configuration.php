@@ -33,6 +33,7 @@ final class Configuration implements ConfigurationInterface
                         ->canBeDisabled()
                         ->children()
                             ->arrayNode('matches')
+                                ->requiresAtLeastOneElement()
                                 ->beforeNormalization()
                                     ->ifString()
                                     ->then(function (string $v): array { return [$v]; })
