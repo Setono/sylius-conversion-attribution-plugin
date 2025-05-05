@@ -27,6 +27,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         $container->setParameter('setono_sylius_conversion_attribution.javascript.enabled', $config['javascript']['enabled']);
         $container->setParameter('setono_sylius_conversion_attribution.source_parameters', $config['source_parameters']);
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
+        $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
 
         $loader->load('services.xml');
 
