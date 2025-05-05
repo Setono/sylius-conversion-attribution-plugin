@@ -7,17 +7,13 @@
 
         <service id="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
 
-        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\GoogleAdsSourceMatcher">
-            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="400"/>
-        </service>
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher">
+            <argument>%setono_sylius_conversion_attribution.query_parameters%</argument>
 
-        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\UtmQueryParameterBasedSourceMatcher">
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="300"/>
         </service>
 
-        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher">
-            <argument>%setono_sylius_conversion_attribution.source_parameters%</argument>
-
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\UtmQueryParameterBasedSourceMatcher">
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="200"/>
         </service>
 
