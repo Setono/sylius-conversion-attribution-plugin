@@ -82,7 +82,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         $container->prependExtensionConfig('setono_sylius_conversion_attribution', [
             'query_parameters' => [
                 'facebook' => [
-                    'matches' => ['fbclid'], 'source' => 'facebook.com', 'medium' => 'cpc',
+                    'matches' => ['fbclid'], 'source' => 'facebook', 'medium' => 'cpc',
                 ],
                 'google' => [
                     'matches' => ['gclid', 'gbraid', 'wbraid'], 'source' => 'google', 'medium' => 'cpc',
