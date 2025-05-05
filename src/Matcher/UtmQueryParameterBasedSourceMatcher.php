@@ -6,7 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Matcher;
 
 use Symfony\Component\HttpFoundation\Request;
 
-final class UtmSourceMatcher implements SourceMatcherInterface
+final class UtmQueryParameterBasedSourceMatcher implements SourceMatcherInterface
 {
     public function match(Request $request): ?Source
     {

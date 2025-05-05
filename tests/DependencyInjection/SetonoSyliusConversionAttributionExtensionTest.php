@@ -6,6 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\DependencyInjection;
 
 use Matthias\SymfonyDependencyInjectionTest\PhpUnit\AbstractExtensionTestCase;
 use Setono\SyliusConversionAttributionPlugin\DependencyInjection\SetonoSyliusConversionAttributionExtension;
+use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber;
 
 final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExtensionTestCase
 {
@@ -25,7 +26,7 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
 
         $this->load();
 
-        $this->assertContainerBuilderHasService('setono_sylius_conversion_attribution.event_subscriber.add_javascript');
+        $this->assertContainerBuilderHasService(AddJavascriptSubscriber::class);
     }
 
     /**
@@ -41,7 +42,7 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
             ],
         ]);
 
-        $this->assertContainerBuilderNotHasService('setono_sylius_conversion_attribution.event_subscriber.add_javascript');
+        $this->assertContainerBuilderNotHasService(AddJavascriptSubscriber::class);
     }
 
     /**

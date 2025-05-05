@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Matcher;
 
 use PHPUnit\Framework\TestCase;
-use Setono\SyliusConversionAttributionPlugin\Matcher\GenericSourceMatcher;
+use Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher;
 use Symfony\Component\HttpFoundation\Request;
 
-final class GenericSourceMatcherTest extends TestCase
+final class QueryParameterBasedSourceMatcherTest extends TestCase
 {
     /**
      * @test
      */
     public function it_matches(): void
     {
-        $matcher = new GenericSourceMatcher([
+        $matcher = new QueryParameterBasedSourceMatcher([
             'ref',
         ]);
 
@@ -33,7 +33,7 @@ final class GenericSourceMatcherTest extends TestCase
      */
     public function it_does_not_match(): void
     {
-        $matcher = new GenericSourceMatcher([
+        $matcher = new QueryParameterBasedSourceMatcher([
             'ref',
         ]);
 

@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Matcher;
 
 use PHPUnit\Framework\TestCase;
-use Setono\SyliusConversionAttributionPlugin\Matcher\UtmSourceMatcher;
+use Setono\SyliusConversionAttributionPlugin\Matcher\UtmQueryParameterBasedSourceMatcher;
 use Symfony\Component\HttpFoundation\Request;
 
-final class UtmSourceMatcherTest extends TestCase
+final class UtmQueryParameterBasedSourceMatcherTest extends TestCase
 {
     /**
      * @test
      */
     public function it_matches(): void
     {
-        $matcher = new UtmSourceMatcher();
+        $matcher = new UtmQueryParameterBasedSourceMatcher();
         $res = $matcher->match(new Request([
             'utm_source' => 'affiliate-site.com', 'utm_medium' => 'affiliate', 'utm_campaign' => 'Summer Sale']));
 
