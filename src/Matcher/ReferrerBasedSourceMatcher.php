@@ -10,8 +10,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
 {
-    public function __construct(private readonly ReferrerParserInterface $referrerParser)
-    {
+    public function __construct(
+        private readonly ReferrerParserInterface $referrerParser,
+        private readonly string $medium = 'referral',
+    ) {
     }
 
     public function match(Request $request): ?Source
@@ -31,6 +33,6 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
             return null;
         }
 
-        return new Source($host, 'referral');
+        return new Source($host, $this->medium);
     }
 }
