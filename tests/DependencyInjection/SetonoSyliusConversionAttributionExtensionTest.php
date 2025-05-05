@@ -20,6 +20,29 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
     /**
      * @test
      */
+    public function it_sets_cpc_parameters(): void
+    {
+        $this->load([
+            'javascript' => false,
+            'query_parameters' => [
+                'facebook' => ['enabled' => false], // should exclude facebook from the resolved list
+                'generic' => ['matches' => ['ref']], // 'ref' should only occur once on the resolved list
+                'x' => ['matches' => ['xclid']], // should add 'xclid' to the list
+            ],
+        ]);
+
+        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.query_parameters', [
+            'google' => ['matches' => ['gclid', 'gbraid', 'wbraid'], 'source' => 'google', 'medium' => 'cpc', 'campaign' => null],
+            'microsoft' => ['matches' => ['msclkid'], 'source' => 'bing', 'medium' => 'cpc', 'campaign' => null],
+            'generic' => ['matches' => ['source', 'ref'], 'source' => null, 'medium' => null, 'campaign' => null],
+            'tiktok' => ['matches' => ['ttclid'], 'source' => 'tiktok', 'medium' => 'cpc', 'campaign' => null],
+            'x' => ['matches' => ['twclid', 'xclid'], 'source' => 'x', 'medium' => 'cpc', 'campaign' => null],
+        ]);
+    }
+
+    /**
+     * @test
+     */
     public function it_loads_event_subscriber_if_tag_bag_bundle_is_enabled(): void
     {
         $this->setParameter('kernel.bundles', ['SetonoTagBagBundle' => true]);
