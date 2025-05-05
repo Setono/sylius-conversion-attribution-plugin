@@ -92,11 +92,14 @@ jobs:
                     coverage: "none"
                     extensions: "${{ env.PHP_EXTENSIONS }}"
                     php-version: "${{ matrix.php-version }}"
-                    tools: "composer-require-checker, composer-unused, flex"
+                    tools: "flex"
 
             -   name: "Remove require-dev section in composer.json"
                 run: "composer config --unset require-dev"
-            
+
+            -   name: "Add shipmonk/composer-dependency-analyser to composer.json"
+                run: "composer require --dev --no-install --no-update --no-plugins --no-scripts shipmonk/composer-dependency-analyser"
+
             -   name: "Install composer dependencies"
                 uses: "ramsey/composer-install@v3"
                 env:
@@ -104,11 +107,8 @@ jobs:
                 with:
                     dependency-versions: "${{ matrix.dependencies }}"
 
-            -   name: "Run maglnet/composer-require-checker"
-                run: "composer-require-checker check"
-
-            -   name: "Run composer-unused/composer-unused"
-                run: "composer-unused"
+            -   name: "Run dependency analysis"
+                run: "vendor/bin/composer-dependency-analyser"
     
     static-code-analysis:
         name: "Static Code Analysis (PHP${{ matrix.php-version }} | Deps: ${{ matrix.dependencies }} | SF${{ matrix.symfony }})"
@@ -141,8 +141,8 @@ jobs:
                     tools: "flex"
 
             -   name: "Remove sylius/sylius from composer.json"
-                run: "composer remove --dev --no-update --no-plugins --no-scripts sylius/sylius"
-            
+                run: "composer remove --dev --no-install --no-update --no-plugins --no-scripts sylius/sylius"
+
             -   name: "Install composer dependencies"
                 uses: "ramsey/composer-install@v3"
                 env:
@@ -303,9 +303,6 @@ jobs:
                     extensions: "${{ env.PHP_EXTENSIONS }}"
                     php-version: "${{ matrix.php-version }}"
 
-            -   name: "Set up problem matchers for phpunit/phpunit"
-                run: "echo \"::add-matcher::${{ runner.tool_cache }}/phpunit.json\""
-
             -   name: "Install composer dependencies"
                 uses: "ramsey/composer-install@v3"
                 with:
@@ -315,6 +312,6 @@ jobs:
                 run: "vendor/bin/phpunit --coverage-clover=.build/logs/clover.xml"
 
             -   name: "Send code coverage report to Codecov.io"
-                uses: "codecov/codecov-action@v3"
+                uses: "codecov/codecov-action@v4"
                 with:
                     token: "${{ secrets.CODECOV_TOKEN }}"
