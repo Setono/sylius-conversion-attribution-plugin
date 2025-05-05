@@ -8,17 +8,23 @@
         <service id="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
 
         <service id="Setono\SyliusConversionAttributionPlugin\Matcher\GoogleAdsSourceMatcher">
-            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="64"/>
+            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="400"/>
         </service>
 
-        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\UtmSourceMatcher">
-            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="32"/>
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\UtmQueryParameterBasedSourceMatcher">
+            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="300"/>
         </service>
 
-        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\GenericSourceMatcher">
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher">
             <argument>%setono_sylius_conversion_attribution.source_parameters%</argument>
 
-            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="16"/>
+            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="200"/>
+        </service>
+
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\ReferrerBasedSourceMatcher">
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParserInterface"/>
+
+            <tag name="setono_sylius_conversion_attribution.source_matcher" priority="100"/>
         </service>
     </services>
 </container>

@@ -6,7 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Matcher;
 
 use Symfony\Component\HttpFoundation\Request;
 
-final class GenericSourceMatcher implements SourceMatcherInterface
+final class QueryParameterBasedSourceMatcher implements SourceMatcherInterface
 {
     public function __construct(
         /**

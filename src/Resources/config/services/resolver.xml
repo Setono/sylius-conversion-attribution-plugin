@@ -8,7 +8,6 @@
         <service id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver">
             <argument type="service" id="request_stack"/>
             <argument type="service" id="Setono\ClientBundle\Context\ClientContextInterface"/>
-            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParserInterface"/>
             <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"/>
         </service>
     </services>
