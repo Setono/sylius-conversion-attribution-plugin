@@ -33,6 +33,10 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
             return null;
         }
 
+        if ($request->getHost() === $host) {
+            return null;
+        }
+
         return new Source($host, $this->medium);
     }
 }
