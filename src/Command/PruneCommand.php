@@ -36,16 +36,32 @@ final class PruneCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this
-            ->getRepository($this->sourceClass)
-            ->createQueryBuilder('o')
-            ->delete()
-            ->andWhere('o.createdAt < :date')
-            ->setParameter('date', new \DateTimeImmutable(sprintf('-%d days', $this->daysToKeep)))
-            ->getQuery()
-            ->execute()
-        ;
+        while (($deletableIds = $this->provideDeletableIds()) !== []) {
+            $this
+                ->getRepository($this->sourceClass)
+                ->createQueryBuilder('o')
+                ->delete()
+                ->andWhere('o.id IN (:ids)')
+                ->setParameter('ids', $deletableIds)
+                ->getQuery()
+                ->execute()
+            ;
+        }
 
         return 0;
+    }
+
+    private function provideDeletableIds(): array
+    {
+        return $this
+            ->getRepository($this->sourceClass)
+            ->createQueryBuilder('o')
+            ->select('o.id')
+            ->andWhere('o.createdAt < :date')
+            ->setParameter('date', new \DateTimeImmutable(sprintf('-%d days', $this->daysToKeep)))
+            ->setMaxResults(500)
+            ->getQuery()
+            ->getScalarResult()
+        ;
     }
 }
