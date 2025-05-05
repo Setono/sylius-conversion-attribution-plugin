@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin;
 
 use Setono\CompositeCompilerPass\CompositeCompilerPass;
+use Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher;
 use Sylius\Bundle\CoreBundle\Application\SyliusPluginTrait;
 use Sylius\Bundle\ResourceBundle\AbstractResourceBundle;
 use Sylius\Bundle\ResourceBundle\SyliusResourceBundle;
@@ -26,7 +27,7 @@ final class SetonoSyliusConversionAttributionPlugin extends AbstractResourceBund
         parent::build($container);
 
         $container->addCompilerPass(new CompositeCompilerPass(
-            'setono_sylius_conversion_attribution.source_matcher.composite',
+            CompositeSourceMatcher::class,
             'setono_sylius_conversion_attribution.source_matcher',
         ));
     }

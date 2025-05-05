@@ -2,10 +2,9 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="setono_sylius_conversion_attribution.event_subscriber.add_javascript"
-                 class="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber">
+        <service id="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber">
             <argument type="service" id="setono_tag_bag.tag_bag"/>
-            <argument type="service" id="setono_sylius_conversion_attribution.resolver.client_information"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolverInterface"/>
             <argument type="service" id="router"/>
             <argument type="service" id="setono_bot_detection.bot_detector.default"/>
             <argument type="service" id="setono_client.cookie_provider.default"/>

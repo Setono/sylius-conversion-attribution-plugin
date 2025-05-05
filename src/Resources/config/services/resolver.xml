@@ -3,14 +3,13 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolverInterface"
-                 alias="setono_sylius_conversion_attribution.resolver.client_information"/>
+                 alias="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver"/>
 
-        <service id="setono_sylius_conversion_attribution.resolver.client_information"
-                 class="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver">
+        <service id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver">
             <argument type="service" id="request_stack"/>
-            <argument type="service" id="setono_client.client_context.default"/>
-            <argument type="service" id="setono_sylius_conversion_attribution.parser.referrer"/>
-            <argument type="service" id="setono_sylius_conversion_attribution.source_matcher.composite"/>
+            <argument type="service" id="Setono\ClientBundle\Context\ClientContextInterface"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParserInterface"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"/>
         </service>
     </services>
 </container>

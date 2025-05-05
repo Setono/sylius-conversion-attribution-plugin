@@ -3,23 +3,19 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"
-                 alias="setono_sylius_conversion_attribution.source_matcher.composite"/>
+                 alias="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
 
-        <service id="setono_sylius_conversion_attribution.source_matcher.composite"
-                 class="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\CompositeSourceMatcher"/>
 
-        <service id="setono_sylius_conversion_attribution.source_matcher.google_ads"
-                 class="Setono\SyliusConversionAttributionPlugin\Matcher\GoogleAdsSourceMatcher">
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\GoogleAdsSourceMatcher">
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="64"/>
         </service>
 
-        <service id="setono_sylius_conversion_attribution.source_matcher.utm"
-                 class="Setono\SyliusConversionAttributionPlugin\Matcher\UtmSourceMatcher">
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\UtmSourceMatcher">
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="32"/>
         </service>
 
-        <service id="setono_sylius_conversion_attribution.source_matcher.generic"
-                 class="Setono\SyliusConversionAttributionPlugin\Matcher\GenericSourceMatcher">
+        <service id="Setono\SyliusConversionAttributionPlugin\Matcher\GenericSourceMatcher">
             <argument>%setono_sylius_conversion_attribution.source_parameters%</argument>
 
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="16"/>

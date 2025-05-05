@@ -2,10 +2,9 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="setono_sylius_conversion_attribution.custom_factory.source"
-                 class="Setono\SyliusConversionAttributionPlugin\Factory\SourceFactory"
+        <service id="Setono\SyliusConversionAttributionPlugin\Factory\SourceFactory"
                  decorates="setono_sylius_conversion_attribution.factory.source" decoration-priority="64">
-            <argument type="service" id="setono_sylius_conversion_attribution.custom_factory.source.inner"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Factory\SourceFactory.inner"/>
         </service>
     </services>
 </container>
