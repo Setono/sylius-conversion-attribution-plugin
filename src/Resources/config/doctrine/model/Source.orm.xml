@@ -8,6 +8,7 @@
                        table="setono_sylius_conversion_attribution__source">
         <indexes>
             <index columns="client_id,created_at"/>
+            <index columns="created_at"/>
         </indexes>
 
         <id name="id" type="integer">
@@ -15,7 +16,6 @@
         </id>
 
         <field name="clientId" column="client_id"/>
-
         <field name="ip" nullable="true"/>
         <field name="userAgent" type="text" nullable="true"/>
         <field name="page" type="text" nullable="true"/>
