@@ -1,0 +1,52 @@
+<div style="margin: 1em 0">
+    <h4 class="ui attached styled header top">
+        {{ 'setono_sylius_conversion_attribution.ui.attribution_heading'|trans }}
+    </h4>
+    <div class="ui attached segment">
+        {# @var source \Setono\SyliusConversionAttributionPlugin\Model\SourceInterface|null #}
+        {% set source = setono_sylius_conversion_attribution_last_non_direct(order) %}
+
+        {% if source is null %}
+            {{ 'setono_sylius_conversion_attribution.ui.attribution_body_without_source'|trans }}
+        {% else %}
+            {{ 'setono_sylius_conversion_attribution.ui.attribution_body_with_source'|trans({ '%source%' : source.source })|raw }}
+
+            <table class="ui fixed very basic table">
+                {% if source.source %}
+                    <tr>
+                        <td><strong>{{ 'setono_sylius_conversion_attribution.ui.source'|trans }}</strong></td>
+                        <td>{{ source.source }}</td>
+                    </tr>
+                {% endif %}
+                {% if source.medium %}
+                    <tr>
+                        <td><strong>{{ 'setono_sylius_conversion_attribution.ui.medium'|trans }}</strong></td>
+                        <td>{{ source.medium }}</td>
+                    </tr>
+                {% endif %}
+                {% if source.campaign %}
+                    <tr>
+                        <td><strong>{{ 'setono_sylius_conversion_attribution.ui.campaign'|trans }}</strong></td>
+                        <td>{{ source.campaign }}</td>
+                    </tr>
+                {% endif %}
+                {% if source.referrer %}
+                    <tr>
+                        <td><strong>{{ 'setono_sylius_conversion_attribution.ui.referrer'|trans }}</strong></td>
+                        <td class="single line"><a href="{{ source.referrer }}" target="_blank">{{ source.referrer }}</a></td>
+                    </tr>
+                {% endif %}
+                {% if source.page %}
+                    <tr>
+                        <td><strong>{{ 'setono_sylius_conversion_attribution.ui.landing_page'|trans }}</strong></td>
+                        <td class="single line"><a href="{{ source.page }}" target="_blank">{{ source.page }}</a></td>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <td><strong>{{ 'setono_sylius_conversion_attribution.ui.when'|trans }}</strong></td>
+                    <td>{{ source.createdAt|date('Y-m-d H:i') }}</td>
+                </tr>
+            </table>
+        {% endif %}
+    </div>
+</div>

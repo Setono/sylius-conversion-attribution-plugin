@@ -27,6 +27,7 @@
         "symfony/http-kernel": "^6.4 || ^7.0",
         "symfony/routing": "^6.4 || ^7.0",
         "symfony/uid": "^6.4 || ^7.0",
+        "twig/twig": "^2.16 || ^3.21",
         "webmozart/assert": "^1.11"
     },
     "require-dev": {
@@ -52,6 +53,9 @@
         "symfony/web-profiler-bundle": "^6.4 || ^7.0",
         "symfony/webpack-encore-bundle": "^1.17.2",
         "willdurand/negotiation": "^3.1"
+    },
+    "conflict": {
+        "symfony/serializer": "6.4.23"
     },
     "prefer-stable": true,
     "autoload": {
