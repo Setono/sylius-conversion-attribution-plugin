@@ -1,0 +1,12 @@
+setono_sylius_conversion_attribution:
+    ui:
+        attribution_heading: Attribution
+        attribution_body_with_source: The last non-direct click was from <strong>%source%</strong>. The details are below.
+        attribution_body_without_source: There was no non-direct click in this customers journey.
+        direct: Direct
+        source: Source
+        medium: Medium
+        campaign: Campaign
+        landing_page: Landing page
+        when: When
+        referrer: Referrer

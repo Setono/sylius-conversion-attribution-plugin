@@ -44,8 +44,8 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $cookie = $this->cookieProvider->getCookie();
-        if (null !== $cookie && $cookie->lastSeenAt >= (time() - $this->sessionTimeout)) {
+        $clientCookie = $this->cookieProvider->getCookie();
+        if (null !== $clientCookie && $clientCookie->lastSeenAt >= (time() - $this->sessionTimeout)) {
             return;
         }
 
@@ -66,10 +66,9 @@ JS;
                 $this->urlGenerator->generate('setono_sylius_conversion_attribution_global_track'),
                 json_encode($clientInformation, \JSON_THROW_ON_ERROR),
             );
-        } catch (\JsonException) {
-            return;
-        }
 
-        $this->tagBag->add(InlineScriptTag::create($javascript));
+            $this->tagBag->add(InlineScriptTag::create($javascript));
+        } catch (\JsonException) {
+        }
     }
 }

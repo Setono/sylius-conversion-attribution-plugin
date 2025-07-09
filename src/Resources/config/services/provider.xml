@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <service id="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProviderInterface"
+                 alias="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProvider"/>
+
+        <service id="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProvider">
+            <argument type="service" id="doctrine"/>
+            <argument>%setono_sylius_conversion_attribution.model.source.class%</argument>
+            <argument>%setono_sylius_conversion_attribution.source.default%</argument>
+        </service>
+    </services>
+</container>

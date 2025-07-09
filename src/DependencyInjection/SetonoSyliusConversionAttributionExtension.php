@@ -36,6 +36,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         }));
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
         $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
+        $container->setParameter('setono_sylius_conversion_attribution.source.default', 'direct');
 
         $loader->load('services.xml');
 
@@ -98,6 +99,19 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
                 ],
                 'x' => [
                     'matches' => ['twclid'], 'source' => 'x', 'medium' => 'cpc',
+                ],
+            ],
+        ]);
+
+        $container->prependExtensionConfig('sylius_ui', [
+            'events' => [
+                'sylius.admin.order.show.sidebar' => [
+                    'blocks' => [
+                        'setono_sylius_conversion_attribution_conversion_path' => [
+                            'template' => '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig',
+                            'priority' => 40,
+                        ],
+                    ],
                 ],
             ],
         ]);

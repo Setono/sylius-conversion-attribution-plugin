@@ -10,6 +10,8 @@
         <import resource="services/factory.xml"/>
         <import resource="services/matcher.xml"/>
         <import resource="services/parser.xml"/>
+        <import resource="services/provider.xml"/>
         <import resource="services/resolver.xml"/>
+        <import resource="services/twig.xml"/>
     </imports>
 </container>
