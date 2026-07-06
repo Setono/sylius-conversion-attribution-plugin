@@ -78,6 +78,11 @@
             "infection/extension-installer": true,
             "symfony/thanks": false
         },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
+        },
         "sort-packages": true
     },
     "scripts": {
