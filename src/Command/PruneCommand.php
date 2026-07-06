@@ -83,8 +83,9 @@ final class PruneCommand extends Command
             ->getScalarResult()
         ;
 
-        // getScalarResult() returns a list of rows (['id' => x]); the IN() parameter needs a flat
-        // list of ids. Without this the DELETE matches nothing and the loop in execute() spins forever.
+        // getScalarResult() returns rows shaped like ['id' => x]; array_column() flattens them into
+        // the list<int> that IN() expects. Combined with the 1000-row batch above this replaces the
+        // previous one-DELETE-per-row loop (setMaxResults(1)).
         return array_column($rows, 'id');
     }
 
