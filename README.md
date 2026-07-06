@@ -102,15 +102,30 @@ php bin/console setono:sylius-conversion-attribution:prune
 - The default JavaScript injection requires [`setono/tag-bag-bundle`](https://github.com/Setono/TagBagBundle).
   Without it, enabling the `javascript` feature throws at container build time. Install it, or set
   `setono_sylius_conversion_attribution.javascript.enabled: false` and inject the tracking snippet yourself.
-- Bot filtering (both for the injected snippet and the `/track` endpoint) is provided by
-  `setono/bot-detection-bundle`, which is installed automatically as a dependency.
+- Bot filtering (for the `/track` endpoint) is provided by `setono/bot-detection-bundle`, which is
+  installed automatically as a dependency. Most bots are filtered structurally anyway: they don't
+  execute the JavaScript snippet, so they never POST to `/track`.
 
 ### Full page cache
 
-The injected tracking snippet embeds a server-resolved client id. If a full page / HTTP cache stores
-the rendered HTML, every visitor served that cached page shares the same embedded client id, which
-corrupts attribution. Exclude pages carrying the snippet from full page caching, or only enable the
-feature on responses that are not cached.
+The injected tracking snippet is static — byte-identical for every visitor — so pages carrying it
+are safe to store in a full page / HTTP cache (Varnish, a CDN, Symfony HttpCache, …). Nothing
+per-visitor is rendered into the HTML: the client id travels on the `setono_client_id` cookie that
+accompanies the snippet's `POST /track` request, and the traffic source is matched server side at
+POST time from the posted page URL and referrer. The session throttle (`session_timeout`) is
+evaluated in the browser against a rolling `localStorage` timestamp; a query string or a cross-host
+referrer bypasses it so campaign clicks are never lost.
+
+Two operational notes:
+
+- **Purge your page cache after upgrading to 1.2.** Pages cached with the pre-1.2 snippet keep
+  POSTing the client id that was baked in when the cache was filled (the `/track` endpoint still
+  accepts those payloads, so nothing breaks — but their attribution stays wrong until they expire).
+- Make sure your layout renders the tag bag on cacheable pages. If a page never renders it, the tag
+  bag stores the pending snippet in the session, which can make the response uncacheable.
+
+If your cache strips `Set-Cookie` from cached responses (it generally should), first-time visitors
+get their client cookie on the uncached `POST /track` response instead, so attribution still works.
 
 ### Privacy / GDPR
 
