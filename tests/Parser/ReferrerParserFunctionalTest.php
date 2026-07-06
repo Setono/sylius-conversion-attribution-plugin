@@ -80,5 +80,11 @@ final class ReferrerParserFunctionalTest extends TestCase
     {
         yield ['https://example.com/foo/bar'];
         yield ['https://example.com'];
+
+        // Paths that produce a cache key containing PSR-6 reserved characters ((), :, @) must be
+        // treated as a cache miss instead of throwing (which would surface as an HTTP 500). A real
+        // world trigger is a Wikipedia article whose title contains parentheses.
+        yield ['https://unknown-referrer-example-xyz.test/wiki/Foo_(disambiguation)'];
+        yield ['https://unknown-referrer-example-xyz.test/a:b@c'];
     }
 }

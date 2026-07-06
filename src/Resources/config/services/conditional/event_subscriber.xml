@@ -8,6 +8,7 @@
             <argument type="service" id="router"/>
             <argument type="service" id="setono_bot_detection.bot_detector.default"/>
             <argument type="service" id="setono_client.cookie_provider.default"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"/>
             <argument>%setono_sylius_conversion_attribution.session_timeout%</argument>
 
             <tag name="kernel.event_subscriber"/>

@@ -12,5 +12,5 @@ interface ClientInformationResolverInterface
     /**
      * Will resolve client information from the request (if set), else it will use the main request
      */
-    public function resolve(Request $request = null): ClientInformation;
+    public function resolve(?Request $request = null): ClientInformation;
 }

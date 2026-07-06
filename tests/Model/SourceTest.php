@@ -21,4 +21,13 @@ final class SourceTest extends TestCase
         self::assertSame('google', $source->getSource());
         self::assertSame('organic', $source->getMedium());
     }
+
+    /**
+     * @test
+     */
+    public function it_has_no_id_before_it_is_persisted(): void
+    {
+        // The id is assigned by the database (integer auto-increment), not generated in the constructor
+        self::assertNull((new Source())->getId());
+    }
 }

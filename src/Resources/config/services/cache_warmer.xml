@@ -4,6 +4,7 @@
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer">
             <argument>%setono_sylius_conversion_attribution.referrers.cache.file%</argument>
+            <argument type="service" id="logger" on-invalid="null"/>
 
             <tag name="kernel.cache_warmer"/>
         </service>

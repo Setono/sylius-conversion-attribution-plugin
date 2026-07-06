@@ -69,15 +69,23 @@ final class PruneCommand extends Command
         return 0;
     }
 
+    /**
+     * @return list<int>
+     */
     private function getDeletableIds(): array
     {
-        return $this
+        /** @var list<array{id: int}> $rows */
+        $rows = $this
             ->getDeletableQueryBuilder()
             ->select('o.id')
-            ->setMaxResults(1)
+            ->setMaxResults(1000)
             ->getQuery()
             ->getScalarResult()
         ;
+
+        // getScalarResult() returns a list of rows (['id' => x]); the IN() parameter needs a flat
+        // list of ids. Without this the DELETE matches nothing and the loop in execute() spins forever.
+        return array_column($rows, 'id');
     }
 
     private function getDeletableQueryBuilder(): QueryBuilder

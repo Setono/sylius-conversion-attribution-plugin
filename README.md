@@ -86,6 +86,39 @@ php bin/console doctrine:migrations:diff
 php bin/console doctrine:migrations:migrate
 ```
 
+### Prune old sources (recommended)
+
+Every tracked hit creates a `source` row, so the table grows continuously. Schedule the prune
+command (for example daily via cron) to delete old rows. By default it keeps 180 days:
+
+```bash
+php bin/console setono:sylius-conversion-attribution:prune
+```
+
+## Notes
+
+### Optional runtime dependencies
+
+- The default JavaScript injection requires [`setono/tag-bag-bundle`](https://github.com/Setono/TagBagBundle).
+  Without it, enabling the `javascript` feature throws at container build time. Install it, or set
+  `setono_sylius_conversion_attribution.javascript.enabled: false` and inject the tracking snippet yourself.
+- Bot filtering (both for the injected snippet and the `/track` endpoint) is provided by
+  `setono/bot-detection-bundle`, which is installed automatically as a dependency.
+
+### Full page cache
+
+The injected tracking snippet embeds a server-resolved client id. If a full page / HTTP cache stores
+the rendered HTML, every visitor served that cached page shares the same embedded client id, which
+corrupts attribution. Exclude pages carrying the snippet from full page caching, or only enable the
+feature on responses that are not cached.
+
+### Privacy / GDPR
+
+A `source` row stores the visitor's IP address and user agent, which are personal data in many
+jurisdictions. Keep retention short by scheduling the prune command, and ensure your privacy policy
+and consent handling cover this collection (you may need to anonymize or omit the IP depending on your
+requirements).
+
 [ico-version]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/v/stable
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license
 [ico-github-actions]: https://github.com/Setono/sylius-conversion-attribution-plugin/workflows/build/badge.svg
