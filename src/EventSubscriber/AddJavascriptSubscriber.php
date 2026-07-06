@@ -25,9 +25,19 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
         private readonly CookieProviderInterface $cookieProvider,
         private readonly int $sessionTimeout,
         // Nullable and last for backwards compatibility: when not injected, mid-session campaign
-        // detection is simply skipped and the previous first-touch-per-session behaviour applies
+        // detection is simply skipped and the previous first-touch-per-session behaviour applies.
+        // @deprecated will be required in 2.0 — grep "trigger_deprecation" to find shims to drop.
         private readonly ?SourceMatcherInterface $sourceMatcher = null,
     ) {
+        if (null === $sourceMatcher) {
+            trigger_deprecation(
+                'setono/sylius-conversion-attribution-plugin',
+                '1.1',
+                'Not passing an instance of "%s" as argument "$sourceMatcher" to "%s()" is deprecated and will be required in 2.0.',
+                SourceMatcherInterface::class,
+                __METHOD__,
+            );
+        }
     }
 
     public static function getSubscribedEvents(): array

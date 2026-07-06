@@ -19,10 +19,21 @@ final class TrackAction
     public function __construct(
         private readonly SourceFactoryInterface $sourceFactory,
         ManagerRegistry $managerRegistry,
-        // Nullable and last for backwards compatibility: when not injected, bot filtering is skipped
+        // Nullable and last for backwards compatibility: when not injected, bot filtering is skipped.
+        // @deprecated will be required in 2.0 — grep "trigger_deprecation" to find shims to drop.
         private readonly ?BotDetectorInterface $botDetector = null,
     ) {
         $this->managerRegistry = $managerRegistry;
+
+        if (null === $botDetector) {
+            trigger_deprecation(
+                'setono/sylius-conversion-attribution-plugin',
+                '1.1',
+                'Not passing an instance of "%s" as argument "$botDetector" to "%s()" is deprecated and will be required in 2.0.',
+                BotDetectorInterface::class,
+                __METHOD__,
+            );
+        }
     }
 
     public function __invoke(#[MapRequestPayload] ClientInformation $clientInformation): Response

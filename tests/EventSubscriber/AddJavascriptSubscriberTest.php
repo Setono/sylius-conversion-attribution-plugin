@@ -135,22 +135,52 @@ final class AddJavascriptSubscriberTest extends TestCase
 
     /**
      * @test
+     *
+     * @group legacy
      */
-    public function it_falls_back_to_the_session_window_when_no_source_matcher_is_injected(): void
+    public function it_triggers_a_deprecation_and_falls_back_when_no_source_matcher_is_injected(): void
     {
         $tagBag = $this->createMock(TagBagInterface::class);
         $tagBag->expects(self::never())->method('add');
 
-        // Legacy wiring: no source matcher. A recent cookie must still short-circuit tracking
-        // (and the missing matcher must not blow up).
-        $subscriber = $this->createSubscriber(
-            tagBag: $tagBag,
-            clientInformation: new ClientInformation(),
-            sourceMatcher: null,
-            cookie: new Cookie('client-id'),
-        );
+        // Legacy wiring: no source matcher. Construction must warn about the deprecation, and a
+        // recent cookie must still short-circuit tracking (the missing matcher must not blow up).
+        $deprecations = $this->captureDeprecations(function () use ($tagBag): void {
+            $subscriber = $this->createSubscriber(
+                tagBag: $tagBag,
+                clientInformation: new ClientInformation(),
+                sourceMatcher: null,
+                cookie: new Cookie('client-id'),
+            );
 
-        $subscriber->addJavascript($this->createRequestEvent());
+            $subscriber->addJavascript($this->createRequestEvent());
+        });
+
+        self::assertNotEmpty($deprecations);
+        self::assertStringContainsString('$sourceMatcher', $deprecations[0]);
+    }
+
+    /**
+     * Runs $callback with a temporary handler that records E_USER_DEPRECATED messages.
+     *
+     * @return list<string>
+     */
+    private function captureDeprecations(callable $callback): array
+    {
+        $deprecations = [];
+        set_error_handler(static function (int $errno, string $errstr) use (&$deprecations): bool {
+            $deprecations[] = $errstr;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $callback();
+        } finally {
+            restore_error_handler();
+        }
+
+        return $deprecations;
     }
 
     private function createSubscriber(

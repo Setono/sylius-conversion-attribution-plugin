@@ -60,8 +60,10 @@ final class TrackActionTest extends TestCase
 
     /**
      * @test
+     *
+     * @group legacy
      */
-    public function it_persists_without_a_bot_detector_for_backwards_compatibility(): void
+    public function it_persists_and_warns_without_a_bot_detector_for_backwards_compatibility(): void
     {
         $source = new Source();
 
@@ -75,11 +77,17 @@ final class TrackActionTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($manager);
 
-        // Legacy two-argument construction (no bot detector) must still work
-        $action = new TrackAction($factory, $registry);
+        $response = null;
 
-        $response = $action(new ClientInformation());
+        // Legacy two-argument construction (no bot detector) must still work and warn
+        $deprecations = $this->captureDeprecations(function () use ($factory, $registry, &$response): void {
+            $action = new TrackAction($factory, $registry);
+            $response = $action(new ClientInformation());
+        });
 
+        self::assertNotEmpty($deprecations);
+        self::assertStringContainsString('$botDetector', $deprecations[0]);
+        self::assertInstanceOf(Response::class, $response);
         self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
 
@@ -89,5 +97,28 @@ final class TrackActionTest extends TestCase
         $botDetector->method('isBotRequest')->willReturn($isBot);
 
         return $botDetector;
+    }
+
+    /**
+     * Runs $callback with a temporary handler that records E_USER_DEPRECATED messages.
+     *
+     * @return list<string>
+     */
+    private function captureDeprecations(callable $callback): array
+    {
+        $deprecations = [];
+        set_error_handler(static function (int $errno, string $errstr) use (&$deprecations): bool {
+            $deprecations[] = $errstr;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $callback();
+        } finally {
+            restore_error_handler();
+        }
+
+        return $deprecations;
     }
 }
