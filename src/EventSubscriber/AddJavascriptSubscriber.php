@@ -65,6 +65,15 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
         // server side source matcher makes the definitive call at POST time.
         $javascript = <<<'JS'
 (function () {
+    // Automated browsers (Selenium, Puppeteer, Playwright, headless Chrome, ...) execute
+    // JavaScript, so they sail past the "bots don't run JS" filter, and many of them use a
+    // real browser User-Agent that the server side bot detection on /track cannot flag.
+    // They do expose the standardized automation flag, though — skip them here. Real
+    // browsers leave the flag false or undefined, so nothing legitimate is lost.
+    if (navigator.webdriver) {
+        return;
+    }
+
     var now = Date.now();
     var last = null;
 

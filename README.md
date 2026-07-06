@@ -104,7 +104,10 @@ php bin/console setono:sylius-conversion-attribution:prune
   `setono_sylius_conversion_attribution.javascript.enabled: false` and inject the tracking snippet yourself.
 - Bot filtering (for the `/track` endpoint) is provided by `setono/bot-detection-bundle`, which is
   installed automatically as a dependency. Most bots are filtered structurally anyway: they don't
-  execute the JavaScript snippet, so they never POST to `/track`.
+  execute the JavaScript snippet, so they never POST to `/track`. Automated browsers that *do*
+  execute JavaScript (Selenium, Puppeteer, Playwright, headless Chrome, …) are skipped by the
+  snippet itself via the standardized `navigator.webdriver` flag — this also keeps your own
+  end-to-end test runs out of the attribution data.
 
 ### Full page cache
 

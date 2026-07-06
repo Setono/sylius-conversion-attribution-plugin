@@ -53,6 +53,9 @@ final class AddJavascriptSubscriberTest extends TestCase
         // The configured session timeout (1800 s) must be interpolated as milliseconds
         self::assertStringContainsString('1800000', $content);
         self::assertStringContainsString('setono_conversion_attribution_last_seen', $content);
+        // Automated browsers execute JS and carry real User-Agents, so the snippet itself must
+        // guard on the standardized automation flag
+        self::assertStringContainsString('navigator.webdriver', $content);
     }
 
     /**
