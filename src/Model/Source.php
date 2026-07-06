@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Model;
 
-use Symfony\Component\Uid\Uuid;
-
 class Source implements SourceInterface
 {
-    protected string $id;
+    protected ?int $id = null;
 
     protected ?string $clientId = null;
 
@@ -30,11 +28,10 @@ class Source implements SourceInterface
 
     public function __construct()
     {
-        $this->id = (string) Uuid::v7();
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    public function getId(): string
+    public function getId(): ?int
     {
         return $this->id;
     }

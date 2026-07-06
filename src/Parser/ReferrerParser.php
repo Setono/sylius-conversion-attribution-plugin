@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Parser;
 
 use Symfony\Component\Cache\Adapter\AdapterInterface;
+use Symfony\Component\Cache\Exception\InvalidArgumentException;
 
 final class ReferrerParser implements ReferrerParserInterface
 {
@@ -71,13 +72,20 @@ final class ReferrerParser implements ReferrerParserInterface
     private function lookupHost(string $host, string $path = ''): ?array
     {
         do {
-            $cacheItem = $this->cache->getItem($host . self::escapePath($path));
-            if ($cacheItem->isHit()) {
-                /** @var mixed $res */
-                $res = $cacheItem->get();
-                if (is_array($res)) {
-                    return $res;
+            try {
+                $cacheItem = $this->cache->getItem($host . self::escapePath($path));
+                if ($cacheItem->isHit()) {
+                    /** @var mixed $res */
+                    $res = $cacheItem->get();
+                    if (is_array($res)) {
+                        return $res;
+                    }
                 }
+            } catch (InvalidArgumentException) {
+                // The referrer's host/path produced a key with PSR-6 reserved characters (e.g. a
+                // referrer like https://en.wikipedia.org/wiki/Foo_(disambiguation)). Such a key is
+                // never present in the warmed referrer database, so treat it as a cache miss
+                // instead of letting the exception bubble up and turn the page into an HTTP 500.
             }
 
             $pos = strpos($host, '.');

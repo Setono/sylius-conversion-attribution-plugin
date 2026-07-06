@@ -20,7 +20,7 @@ final class ClientInformationResolver implements ClientInformationResolverInterf
     ) {
     }
 
-    public function resolve(Request $request = null): ClientInformation
+    public function resolve(?Request $request = null): ClientInformation
     {
         $clientInformation = new ClientInformation();
 
