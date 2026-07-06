@@ -133,10 +133,30 @@ final class AddJavascriptSubscriberTest extends TestCase
         $subscriber->addJavascript($this->createRequestEvent());
     }
 
+    /**
+     * @test
+     */
+    public function it_falls_back_to_the_session_window_when_no_source_matcher_is_injected(): void
+    {
+        $tagBag = $this->createMock(TagBagInterface::class);
+        $tagBag->expects(self::never())->method('add');
+
+        // Legacy wiring: no source matcher. A recent cookie must still short-circuit tracking
+        // (and the missing matcher must not blow up).
+        $subscriber = $this->createSubscriber(
+            tagBag: $tagBag,
+            clientInformation: new ClientInformation(),
+            sourceMatcher: null,
+            cookie: new Cookie('client-id'),
+        );
+
+        $subscriber->addJavascript($this->createRequestEvent());
+    }
+
     private function createSubscriber(
         TagBagInterface $tagBag,
         ClientInformation $clientInformation,
-        SourceMatcherInterface $sourceMatcher,
+        ?SourceMatcherInterface $sourceMatcher,
         ?Cookie $cookie,
         bool $isBot = false,
     ): AddJavascriptSubscriber {
@@ -158,8 +178,8 @@ final class AddJavascriptSubscriberTest extends TestCase
             $urlGenerator,
             $botDetector,
             $cookieProvider,
-            $sourceMatcher,
             1800,
+            $sourceMatcher,
         );
     }
 

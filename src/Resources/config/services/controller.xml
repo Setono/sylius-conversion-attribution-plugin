@@ -4,8 +4,8 @@
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackAction" public="true">
             <argument type="service" id="setono_sylius_conversion_attribution.factory.source"/>
-            <argument type="service" id="setono_bot_detection.bot_detector.default"/>
             <argument type="service" id="doctrine"/>
+            <argument type="service" id="setono_bot_detection.bot_detector.default"/>
         </service>
     </services>
 </container>

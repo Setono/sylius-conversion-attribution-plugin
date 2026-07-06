@@ -33,7 +33,7 @@ final class TrackActionTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($manager);
 
-        $action = new TrackAction($factory, $this->botDetector(false), $registry);
+        $action = new TrackAction($factory, $registry, $this->botDetector(false));
 
         $response = $action(new ClientInformation());
 
@@ -51,7 +51,32 @@ final class TrackActionTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects(self::never())->method('getManagerForClass');
 
-        $action = new TrackAction($factory, $this->botDetector(true), $registry);
+        $action = new TrackAction($factory, $registry, $this->botDetector(true));
+
+        $response = $action(new ClientInformation());
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+    }
+
+    /**
+     * @test
+     */
+    public function it_persists_without_a_bot_detector_for_backwards_compatibility(): void
+    {
+        $source = new Source();
+
+        $factory = $this->createMock(SourceFactoryInterface::class);
+        $factory->method('createFromClientInformation')->willReturn($source);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->expects(self::once())->method('persist')->with($source);
+        $manager->expects(self::once())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($manager);
+
+        // Legacy two-argument construction (no bot detector) must still work
+        $action = new TrackAction($factory, $registry);
 
         $response = $action(new ClientInformation());
 

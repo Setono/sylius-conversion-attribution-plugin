@@ -23,8 +23,10 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly BotDetectorInterface $botDetector,
         private readonly CookieProviderInterface $cookieProvider,
-        private readonly SourceMatcherInterface $sourceMatcher,
         private readonly int $sessionTimeout,
+        // Nullable and last for backwards compatibility: when not injected, mid-session campaign
+        // detection is simply skipped and the previous first-touch-per-session behaviour applies
+        private readonly ?SourceMatcherInterface $sourceMatcher = null,
     ) {
     }
 
@@ -50,7 +52,7 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
 
         // A request that carries campaign markers (utm/click id/cross-host referrer) is always
         // tracked, even mid-session, so a paid click arriving after an organic entry isn't lost
-        $hasCampaign = null !== $this->sourceMatcher->match($request);
+        $hasCampaign = null !== $this->sourceMatcher && null !== $this->sourceMatcher->match($request);
 
         if (!$hasCampaign) {
             $clientCookie = $this->cookieProvider->getCookie();

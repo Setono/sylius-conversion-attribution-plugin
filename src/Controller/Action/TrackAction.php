@@ -18,8 +18,9 @@ final class TrackAction
 
     public function __construct(
         private readonly SourceFactoryInterface $sourceFactory,
-        private readonly BotDetectorInterface $botDetector,
         ManagerRegistry $managerRegistry,
+        // Nullable and last for backwards compatibility: when not injected, bot filtering is skipped
+        private readonly ?BotDetectorInterface $botDetector = null,
     ) {
         $this->managerRegistry = $managerRegistry;
     }
@@ -28,7 +29,7 @@ final class TrackAction
     {
         // The endpoint is anonymous; drop bot traffic (matched on the real request User-Agent)
         // so automated hits don't flood the source table
-        if ($this->botDetector->isBotRequest()) {
+        if (null !== $this->botDetector && $this->botDetector->isBotRequest()) {
             return new Response(status: Response::HTTP_NO_CONTENT);
         }
 
