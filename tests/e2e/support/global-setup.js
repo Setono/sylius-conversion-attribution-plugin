@@ -3,8 +3,9 @@ const path = require('path');
 const app = require('./app');
 
 /**
- * Installs the test application from scratch: database, fixtures, bundle assets (the tracking script)
- * and a warm prod cache. Set E2E_SKIP_SETUP=1 to rerun the tests against an installed application
+ * Installs the test application from scratch: database (E2E_DATABASE_URL's, which is dropped first, see
+ * app.js), fixtures, bundle assets (the tracking script) and a warm prod cache. Set E2E_SKIP_SETUP=1 to
+ * rerun the tests against an installed application
  */
 module.exports = () => {
     if (process.env.E2E_SKIP_SETUP) {
