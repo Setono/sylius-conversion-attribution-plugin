@@ -9,15 +9,19 @@
  * Configured through attributes on its own <script id="ssca"> tag:
  * - data-endpoint: the URL to POST page views to
  * - data-session-timeout: seconds of inactivity after which a visitor's next page view is tracked again
+ *
+ * Written in ES2019: every browser that has the APIs it relies on (fetch(), document.currentScript, ...)
+ * supports that syntax. It is wrapped in a function, because top level declarations in a classic script
+ * would end up in the page's global scope.
  */
-(function () {
+(() => {
     'use strict';
 
-    var STORAGE_KEY = 'ssca_last_seen';
+    const STORAGE_KEY = 'ssca_last_seen';
 
     // document.currentScript is null when a script optimizer (e.g. Cloudflare Rocket Loader) runs the
     // script, so fall back to the tag's id, like Fathom, Simple Analytics and Cloudflare's own tracker do
-    var script = document.currentScript || document.getElementById('ssca');
+    const script = document.currentScript || document.getElementById('ssca');
 
     // Automated browsers (Selenium, Puppeteer, Playwright, Cypress, headless Chrome, ...) execute
     // JavaScript, so they sail past the "bots don't run JS" filter, and many of them send a real
@@ -28,29 +32,29 @@
         return;
     }
 
-    var endpoint = script.getAttribute('data-endpoint');
+    const endpoint = script.getAttribute('data-endpoint');
     if (!endpoint) {
         return;
     }
 
-    var sessionTimeout = parseInt(script.getAttribute('data-session-timeout'), 10) * 1000;
+    const sessionTimeout = parseInt(script.getAttribute('data-session-timeout'), 10) * 1000;
 
-    function track() {
-        var now = Date.now();
-        var lastSeen = NaN;
+    const track = () => {
+        const now = Date.now();
+        let lastSeen = NaN;
 
         // A rolling "last seen" timestamp: every page view extends the session
         try {
             lastSeen = parseInt(window.localStorage.getItem(STORAGE_KEY), 10);
             window.localStorage.setItem(STORAGE_KEY, String(now));
-        } catch (e) {
+        } catch {
             // storage unavailable (disabled, sandboxed iframe, ...): every page view starts a session
         }
 
         // A missing or unreadable timestamp (first visit, unavailable storage) or session timeout means a
         // new session. parseInt() returns NaN for those, so check it explicitly instead of relying on any
         // comparison with NaN being false
-        var withinSession = !isNaN(lastSeen) && !isNaN(sessionTimeout) && now - lastSeen < sessionTimeout;
+        const withinSession = !isNaN(lastSeen) && !isNaN(sessionTimeout) && now - lastSeen < sessionTimeout;
 
         // Only the first page view of a session is tracked, with its URL and referrer: that's where the
         // visitor came from. Later ones within the session aren't, not even with a query string or a
@@ -60,7 +64,7 @@
             return;
         }
 
-        var payload = {page: window.location.href};
+        const payload = {page: window.location.href};
         if (document.referrer !== '') {
             payload.referrer = document.referrer;
         }
@@ -73,13 +77,13 @@
                 'Content-Type': 'application/json',
                 // Marks it as a background request for Symfony's Request::isXmlHttpRequest(), so the
                 // shop's listeners that skip AJAX requests (tag injection, page view recording, ...) skip it
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify(payload)
-        }).catch(function () {
+            body: JSON.stringify(payload),
+        }).catch(() => {
             // offline or blocked: nothing to do, and no unhandled rejection in the console
         });
-    }
+    };
 
     // A prerendered page (speculation rules, browser address bar predictions) runs its scripts before
     // the visitor ever sees it, and maybe never. Wait until it is actually shown
