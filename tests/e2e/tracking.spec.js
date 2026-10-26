@@ -7,7 +7,7 @@ test('a landing page view is tracked and stored', async ({page, request, state})
     await page.goto(LANDING_PAGE);
     expect((await response).status()).toBe(204);
 
-    const tag = page.locator('script#setono-sylius-conversion-attribution');
+    const tag = page.locator('script#ssca');
     await expect(tag).toHaveAttribute('src', /^\/bundles\/setonosyliusconversionattributionplugin\/js\/track\.js\?v=[0-9a-f]{12}$/);
     await expect(tag).toHaveAttribute('defer', '');
     await expect(tag).toHaveAttribute('data-endpoint', '/track');
@@ -36,7 +36,7 @@ test('every visitor gets the same tag, so full page caches can store the page', 
         const context = await browser.newContext(options);
         const page = await context.newPage();
         await page.goto('/en_US/');
-        tags.push(await page.locator('script#setono-sylius-conversion-attribution').evaluate((tag) => tag.outerHTML));
+        tags.push(await page.locator('script#ssca').evaluate((tag) => tag.outerHTML));
         await context.close();
     }
 
