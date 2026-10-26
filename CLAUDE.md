@@ -51,7 +51,7 @@ Note the distinction between the two `Source` classes: `Matcher\Source` is a val
 
 **Attribution (order side):**
 1. On `sylius.order.pre_complete`, `EventSubscriber\AddClientIdSubscriber` stamps the current client id on the order and customer. Host applications must add `OrderInterface`/`OrderTrait` and `CustomerInterface`/`CustomerTrait` (from `src/Model/`) to their Order/Customer entities — see README.
-2. `Provider\OrderAttributionProvider` finds the newest non-`direct` Source row for the order's client id.
+2. `Provider\OrderAttributionProvider` finds the newest non-`direct` Source row for the order's client id that was tracked up to the order's `checkoutCompletedAt`, so visits after checkout (e.g. returning from a payment gateway) never take the credit.
 3. The admin order page shows this via a `sylius_ui` block (`sylius.admin.order.show.sidebar`, prepended in the extension) rendering `src/Resources/views/order/attribution.html.twig` through the Twig extension/runtime in `src/Twig/`.
 
 **Maintenance:** `Command\PruneCommand` (`setono:sylius-conversion-attribution:prune`) deletes Source rows older than 180 days.

@@ -30,7 +30,7 @@ final class OrderAttributionProvider implements OrderAttributionProviderInterfac
             return null;
         }
 
-        $source = $this->getManager($this->sourceClass)
+        $qb = $this->getManager($this->sourceClass)
             ->createQueryBuilder()
             ->select('o')
             ->from($this->sourceClass, 'o')
@@ -40,9 +40,18 @@ final class OrderAttributionProvider implements OrderAttributionProviderInterfac
             ->setParameter('defaultSource', $this->defaultSource)
             ->addOrderBy('o.createdAt', 'DESC')
             ->setMaxResults(1)
-            ->getQuery()
-            ->getOneOrNullResult()
         ;
+
+        // Only what led to the order may take the credit, not what was tracked after checkout: the
+        // customer returning from a payment gateway (a cross-host referral) or a later visit
+        $checkoutCompletedAt = $order->getCheckoutCompletedAt();
+        if (null !== $checkoutCompletedAt) {
+            $qb->andWhere('o.createdAt <= :checkoutCompletedAt')
+                ->setParameter('checkoutCompletedAt', \DateTime::createFromInterface($checkoutCompletedAt), 'datetime')
+            ;
+        }
+
+        $source = $qb->getQuery()->getOneOrNullResult();
 
         Assert::nullOrIsInstanceOf($source, SourceInterface::class);
 

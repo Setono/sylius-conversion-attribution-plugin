@@ -24,6 +24,12 @@ It is now a static file with all per-visitor work done server side when a page v
   mapping on `Model\Source` (`src/Resources/config/validation/Source.xml`), so a model class you
   override inherits them. User agents are no longer limited to 1024 characters (it's a text column).
 
+## Attribution
+
+- An order is credited to the newest non-direct source tracked **up to its checkout completion**
+  (`OrderAttributionProvider`). Before, it was the newest one overall, so a later visit, or the customer
+  returning from a payment gateway after checkout, could take the credit for an earlier order.
+
 ## Constructor and signature changes
 
 If you redefine, decorate or extend these services, update the arguments:
