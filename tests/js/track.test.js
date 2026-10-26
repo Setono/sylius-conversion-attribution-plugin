@@ -232,11 +232,30 @@ describe('nothing is tracked', () => {
     });
 
     test('when the script cannot find its own tag', () => {
-        // document.currentScript is null for module scripts and inside callbacks
         stub(document, 'currentScript', null);
         jest.isolateModules(() => require(SCRIPT));
 
         expect(fetch).not.toHaveBeenCalled();
+    });
+});
+
+describe('without document.currentScript', () => {
+    test('the script finds its tag by its id', () => {
+        // e.g. when Cloudflare Rocket Loader runs the script
+        const script = document.createElement('script');
+        script.id = 'setono-sylius-conversion-attribution';
+        script.setAttribute('data-endpoint', '/track');
+        script.setAttribute('data-session-timeout', String(SESSION_TIMEOUT));
+        document.head.appendChild(script);
+
+        try {
+            stub(document, 'currentScript', null);
+            jest.isolateModules(() => require(SCRIPT));
+
+            expect(fetch).toHaveBeenCalledWith('/track', expect.objectContaining({method: 'POST'}));
+        } finally {
+            script.remove();
+        }
     });
 });
 

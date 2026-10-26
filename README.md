@@ -113,7 +113,7 @@ php bin/console setono:sylius-conversion-attribution:prune
 On every HTML page the plugin adds this tag (through the tag bag):
 
 ```html
-<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=…" defer
+<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=…" id="setono-sylius-conversion-attribution" defer
         data-endpoint="/track" data-session-timeout="1800" data-campaign-parameters="utm_source gclid fbclid …"></script>
 ```
 

@@ -63,6 +63,8 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
         // bag renders attribute values raw, hence the escaping
         $this->tagBag->add(
             ScriptTag::create(htmlspecialchars($src))
+                // lets the script find its tag when document.currentScript is null (script optimizers)
+                ->withAttribute('id', 'setono-sylius-conversion-attribution')
                 ->defer()
                 ->withAttribute('data-endpoint', htmlspecialchars($this->urlGenerator->generate('setono_sylius_conversion_attribution_global_track')))
                 ->withAttribute('data-session-timeout', $this->sessionTimeout)

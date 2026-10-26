@@ -6,7 +6,7 @@
  * the page view is POSTed: the client id from the setono_client_id cookie riding on the request, and
  * the traffic source from the posted page URL and referrer.
  *
- * Configured through attributes on its own <script> tag:
+ * Configured through attributes on its own <script id="setono-sylius-conversion-attribution"> tag:
  * - data-endpoint: the URL to POST page views to
  * - data-session-timeout: seconds within which a returning visitor isn't tracked again
  * - data-campaign-parameters: space separated query parameters (utm_source, gclid, ...) that may carry a
@@ -17,7 +17,9 @@
 
     var STORAGE_KEY = 'setono_conversion_attribution_last_seen';
 
-    var script = document.currentScript;
+    // document.currentScript is null when a script optimizer (e.g. Cloudflare Rocket Loader) runs the
+    // script, so fall back to the tag's id, like Fathom, Simple Analytics and Cloudflare's own tracker do
+    var script = document.currentScript || document.getElementById('setono-sylius-conversion-attribution');
 
     // Automated browsers (Selenium, Puppeteer, Playwright, Cypress, headless Chrome, ...) execute
     // JavaScript, so they sail past the "bots don't run JS" filter, and many of them send a real
