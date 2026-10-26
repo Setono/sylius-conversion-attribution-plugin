@@ -20,7 +20,7 @@ vendor/bin/infection                  # Mutation testing (minCoveredMsi: 100)
 vendor/bin/composer-dependency-analyser  # Dependency analysis (CI-enforced)
 composer normalize --dry-run          # composer.json normalization (CI-enforced)
 (cd tests/Application && yarn install && yarn test)  # Jest tests for the tracking script (tests/js, CI-enforced)
-(cd tests/Application && yarn build:tracking-script)  # Minify the tracking script after editing it (CI checks the committed result is up to date)
+(cd tests/Application && yarn install && yarn build:tracking-script)  # Minify the tracking script after editing it (CI checks the committed result is up to date; install first, or a branch switch can leave Encore's older Terser in node_modules)
 ```
 
 The test app in `tests/Application` is used by CI for linting and schema validation (needs MySQL via `DATABASE_URL`, `APP_ENV=test`):
