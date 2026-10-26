@@ -38,10 +38,12 @@
     var sessionTimeout = parseInt(script.getAttribute('data-session-timeout'), 10) * 1000;
     var campaignParameters = (script.getAttribute('data-campaign-parameters') || '').split(' ');
 
-    function hasCampaignHint() {
-        // A campaign parameter or a cross-host referrer may carry a new traffic source; the server side
-        // source matchers make the definitive call. Other query strings (pagination, sorting, search, ...)
-        // can't, so they don't bypass the session throttle
+    // A campaign parameter (an ad click, a newsletter link, ...) may carry a new traffic source, so it
+    // bypasses the session throttle; the server side source matchers make the definitive call. Other
+    // query strings (pagination, sorting, search, ...) can't. A referrer from another site doesn't
+    // bypass it either: within a session that's mostly the customer returning from a payment gateway
+    // (PayPal, Stripe, ...), which would be stored as a referral and could take the credit for an order
+    function hasCampaignParameter() {
         var query = new URLSearchParams(window.location.search);
         for (var i = 0; i < campaignParameters.length; i++) {
             if (query.get(campaignParameters[i])) {
@@ -49,15 +51,7 @@
             }
         }
 
-        if (document.referrer === '') {
-            return false;
-        }
-
-        try {
-            return new URL(document.referrer).host !== window.location.host;
-        } catch (e) {
-            return true;
-        }
+        return false;
     }
 
     function track() {
@@ -72,7 +66,7 @@
             // storage unavailable (disabled, sandboxed iframe, ...): track every page view
         }
 
-        if (!hasCampaignHint() && now - last < sessionTimeout) {
+        if (!hasCampaignParameter() && now - last < sessionTimeout) {
             return;
         }
 

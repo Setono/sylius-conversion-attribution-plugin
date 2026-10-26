@@ -157,31 +157,26 @@ describe('the session throttle', () => {
         expect(fetch).not.toHaveBeenCalled();
     });
 
-    test('is bypassed by a cross-host referrer', () => {
+    test.each([
+        ['returning from a payment gateway', '/en_US/order/thank-you?token=EC-123&PayerID=ABC', 'https://www.paypal.com/'],
+        ['another site', '/', 'https://facebook.com/'],
+        ['the shop itself', '/cart', 'https://shop.example/product/t-shirt'],
+        ['an unparsable referrer', '/', 'not a url'],
+    ])('is not bypassed by a referrer: %s', (_, url, referrer) => {
         lastSeen(1);
-        visit('/', 'https://facebook.com/');
-
-        run();
-
-        expect(postedPayload()).toEqual({page: 'https://shop.example/', referrer: 'https://facebook.com/'});
-    });
-
-    test('is not bypassed by a same-host referrer', () => {
-        lastSeen(1);
-        visit('/cart', 'https://shop.example/product/t-shirt');
+        visit(url, referrer);
 
         run();
 
         expect(fetch).not.toHaveBeenCalled();
     });
 
-    test('is bypassed by an unparsable referrer', () => {
-        lastSeen(1);
-        visit('/', 'not a url');
+    test('tracks the first page view of a session with its referrer', () => {
+        visit('/', 'https://facebook.com/');
 
         run();
 
-        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(postedPayload()).toEqual({page: 'https://shop.example/', referrer: 'https://facebook.com/'});
     });
 
     test.each([
