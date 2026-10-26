@@ -208,7 +208,7 @@ describe('without document.currentScript', () => {
     test('the script finds its tag by its id', () => {
         // e.g. when Cloudflare Rocket Loader runs the script
         const script = document.createElement('script');
-        script.id = 'setono-sylius-conversion-attribution';
+        script.id = 'ssca';
         script.setAttribute('data-endpoint', '/track');
         script.setAttribute('data-session-timeout', String(SESSION_TIMEOUT));
         document.head.appendChild(script);

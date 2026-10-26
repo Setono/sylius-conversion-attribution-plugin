@@ -38,7 +38,7 @@ final class AddJavascriptSubscriberTest extends TestCase
         self::assertCount(1, $tags);
         self::assertInstanceOf(ScriptTag::class, $tags[0]);
         self::assertSame(
-            '<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" id="setono-sylius-conversion-attribution" defer data-endpoint="/track" data-session-timeout="1800"></script>',
+            '<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" id="ssca" defer data-endpoint="/track" data-session-timeout="1800"></script>',
             (new ElementRenderer())->render($tags[0]),
         );
     }
@@ -104,7 +104,7 @@ final class AddJavascriptSubscriberTest extends TestCase
 
         self::assertInstanceOf(ScriptTag::class, $tags[0]);
         self::assertSame(
-            '<script src="/shop&quot;onload=&quot;x/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" id="setono-sylius-conversion-attribution" defer data-endpoint="/track&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" data-session-timeout="1800"></script>',
+            '<script src="/shop&quot;onload=&quot;x/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" id="ssca" defer data-endpoint="/track&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" data-session-timeout="1800"></script>',
             (new ElementRenderer())->render($tags[0]),
         );
     }
