@@ -19,22 +19,29 @@ It is now a static file with all per-visitor work done server side when a page v
 - `POST /track` takes `{"page": "…", "referrer": "…"}` (`Controller\Action\TrackPayload`), and `page`
   is required. The client id, source, medium, campaign, IP and user agent are always resolved server
   side; posted values for them are ignored.
-- An over-long resolved value (e.g. a `utm_campaign` longer than 255 characters) is answered with 422
-  and not stored, as before.
+- An over-long value for a string column of the `source` table (e.g. a `utm_campaign` longer than 255
+  characters) is answered with 422 and not stored, as before. The limits now live in a validation
+  mapping on `Model\Source` (`src/Resources/config/validation/Source.xml`), so a model class you
+  override inherits them. User agents are no longer limited to 1024 characters (it's a text column).
 
 ## Constructor and signature changes
 
 If you redefine, decorate or extend these services, update the arguments:
 
-- `Controller\Action\TrackAction::__construct(SourceFactoryInterface $sourceFactory, ManagerRegistry $managerRegistry, BotDetectorInterface $botDetector, ClientInformationResolverInterface $clientInformationResolver, ValidatorInterface $validator)`.
-  All arguments are required. `__invoke()` takes a `TrackPayload` and the (required) `Request`.
+- `Controller\Action\TrackAction::__construct(SourceFactoryInterface $sourceFactory, ManagerRegistry $managerRegistry, BotDetectorInterface $botDetector, ClientContextInterface $clientContext, SourceMatcherInterface $sourceMatcher, ValidatorInterface $validator, string $defaultSource)`.
+  All arguments are required. `__invoke()` takes a `TrackPayload` and the (required) `Request`, and
+  builds the `Source` itself.
 - `EventSubscriber\AddJavascriptSubscriber::__construct(TagBagInterface $tagBag, UrlGeneratorInterface $urlGenerator, Packages $packages, int $sessionTimeout, string $scriptVersion)`.
   The client information resolver, bot detector, cookie provider and source matcher arguments are gone.
   The subscriber adds a `ScriptTag` instead of an `InlineScriptTag`.
-- `Resolver\ClientInformationResolverInterface::resolve(Request $request)`: the request is required;
-  there is no fallback to the main request anymore. `ClientInformationResolver` no longer takes a
-  `RequestStack`.
-- `ClientInformation\ClientInformation` no longer implements `JsonSerializable`.
+- `SourceFactoryInterface::createFromClientInformation()` is removed; use `createNew()` and the setters.
+
+## Removed classes
+
+- `ClientInformation\ClientInformation`, `Resolver\ClientInformationResolver` and
+  `Resolver\ClientInformationResolverInterface` (and the service of the same name). To change how the
+  traffic source is resolved, add a source matcher (tag `setono_sylius_conversion_attribution.source_matcher`);
+  the client id comes from `setono/client-bundle`'s `ClientContextInterface`.
 
 ## Dependencies
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<constraint-mapping xmlns="http://symfony.com/schema/dic/constraint-mapping"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://symfony.com/schema/dic/constraint-mapping http://symfony.com/schema/dic/services/constraint-mapping-1.0.xsd">
+    <!-- The values come from the visitor (cookie, utm_* parameters, referrer host), so they must be
+         validated against the string columns before flushing. page, referrer and userAgent are text columns -->
+    <class name="Setono\SyliusConversionAttributionPlugin\Model\Source">
+        <property name="clientId">
+            <constraint name="Length">
+                <option name="max">255</option>
+            </constraint>
+        </property>
+        <property name="ip">
+            <constraint name="Length">
+                <option name="max">255</option>
+            </constraint>
+        </property>
+        <property name="source">
+            <constraint name="Length">
+                <option name="max">255</option>
+            </constraint>
+        </property>
+        <property name="medium">
+            <constraint name="Length">
+                <option name="max">255</option>
+            </constraint>
+        </property>
+        <property name="campaign">
+            <constraint name="Length">
+                <option name="max">255</option>
+            </constraint>
+        </property>
+    </class>
+</constraint-mapping>
