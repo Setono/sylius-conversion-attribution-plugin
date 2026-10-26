@@ -19,7 +19,7 @@ vendor/bin/rector process --dry-run   # Rector (CI runs this, non-blocking)
 vendor/bin/infection                  # Mutation testing (minCoveredMsi: 100)
 vendor/bin/composer-dependency-analyser  # Dependency analysis (CI-enforced)
 composer normalize --dry-run          # composer.json normalization (CI-enforced)
-npm install && npm test               # Jest tests for the tracking script (tests/js, CI-enforced)
+(cd tests/Application && yarn install && yarn test)  # Jest tests for the tracking script (tests/js, CI-enforced)
 ```
 
 The test app in `tests/Application` is used by CI for linting and schema validation (needs MySQL via `DATABASE_URL`, `APP_ENV=test`):
