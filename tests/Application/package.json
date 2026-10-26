@@ -17,14 +17,16 @@
         "jest": "^30.5.2",
         "jest-environment-jsdom": "^30.5.2",
         "sass": "^1.105.1",
-        "sass-loader": "^12.0"
+        "sass-loader": "^12.0",
+        "terser": "5.51.2"
     },
     "scripts": {
         "dev": "encore dev",
         "build": "encore production",
         "watch": "encore dev --watch",
         "test": "jest",
-        "e2e": "playwright test"
+        "e2e": "playwright test",
+        "build:tracking-script": "terser ../../src/Resources/private/js/track.js --compress --mangle --comments some --output ../../src/Resources/public/js/track.js"
     },
     "repository": {
         "type": "git",

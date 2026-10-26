@@ -1,6 +1,12 @@
 const path = require('path');
 
-const SCRIPT = path.resolve(__dirname, '../../src/Resources/public/js/track.js');
+// Every test runs against the source and against what ships: the source minified by
+// `yarn build:tracking-script`, so minification can't silently change the script's behaviour
+const SCRIPTS = [
+    ['source', path.resolve(__dirname, '../../src/Resources/private/js/track.js')],
+    ['built', path.resolve(__dirname, '../../src/Resources/public/js/track.js')],
+];
+let SCRIPT;
 const STORAGE_KEY = 'setono_conversion_attribution_last_seen';
 const NOW = 1_700_000_000_000;
 const SESSION_TIMEOUT = 1800;
@@ -59,184 +65,190 @@ afterEach(() => {
     jest.restoreAllMocks();
 });
 
-describe('a page view', () => {
-    test('is posted to the endpoint', () => {
-        visit('/product/t-shirt', 'https://google.com/search');
+describe.each(SCRIPTS)('the %s script', (_, script) => {
+    beforeAll(() => {
+        SCRIPT = script;
+    });
 
-        run();
+    describe('a page view', () => {
+        test('is posted to the endpoint', () => {
+            visit('/product/t-shirt', 'https://google.com/search');
 
-        expect(fetch).toHaveBeenCalledWith('/track', {
-            method: 'POST',
-            credentials: 'same-origin',
-            keepalive: true,
-            headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
-            body: JSON.stringify({page: 'https://shop.example/product/t-shirt', referrer: 'https://google.com/search'}),
+            run();
+
+            expect(fetch).toHaveBeenCalledWith('/track', {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                body: JSON.stringify({page: 'https://shop.example/product/t-shirt', referrer: 'https://google.com/search'}),
+            });
+        });
+
+        test('is posted without a referrer when there is none', () => {
+            run();
+
+            expect(postedPayload()).toEqual({page: 'https://shop.example/'});
+        });
+
+        test('updates the last seen timestamp', () => {
+            run();
+
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
+        });
+
+        test('swallows a failed request', () => {
+            // offline or blocked by an extension: no unhandled rejection in the console
+            const request = {catch: jest.fn()};
+            fetch.mockReturnValue(request);
+
+            run();
+
+            expect(request.catch).toHaveBeenCalledWith(expect.any(Function));
+            expect(() => request.catch.mock.calls[0][0](new Error('offline'))).not.toThrow();
         });
     });
 
-    test('is posted without a referrer when there is none', () => {
-        run();
+    describe('the session throttle', () => {
+        test('skips a visitor seen within the session timeout, but extends the session', () => {
+            lastSeen(29);
 
-        expect(postedPayload()).toEqual({page: 'https://shop.example/'});
-    });
+            run();
 
-    test('updates the last seen timestamp', () => {
-        run();
-
-        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
-    });
-
-    test('swallows a failed request', () => {
-        // offline or blocked by an extension: no unhandled rejection in the console
-        const request = {catch: jest.fn()};
-        fetch.mockReturnValue(request);
-
-        run();
-
-        expect(request.catch).toHaveBeenCalledWith(expect.any(Function));
-        expect(() => request.catch.mock.calls[0][0](new Error('offline'))).not.toThrow();
-    });
-});
-
-describe('the session throttle', () => {
-    test('skips a visitor seen within the session timeout, but extends the session', () => {
-        lastSeen(29);
-
-        run();
-
-        expect(fetch).not.toHaveBeenCalled();
-        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
-    });
-
-    test('tracks a visitor again once the session timed out', () => {
-        lastSeen(30);
-
-        run();
-
-        expect(fetch).toHaveBeenCalledTimes(1);
-    });
-
-    test.each([
-        ['a campaign', '/?utm_source=newsletter&utm_medium=email', ''],
-        ['an ad click', '/product?gclid=abc', ''],
-        ['pagination, sorting and search', '/taxons/t-shirts?page=2&sorting[price]=asc&criteria[search][value]=red', ''],
-        ['returning from a payment gateway', '/en_US/order/thank-you?token=EC-123&PayerID=ABC', 'https://www.paypal.com/'],
-        ['another site', '/', 'https://facebook.com/'],
-        ['the shop itself', '/cart', 'https://shop.example/product/t-shirt'],
-    ])('is not bypassed by a page view from %s', (_, url, referrer) => {
-        lastSeen(1);
-        visit(url, referrer);
-
-        run();
-
-        expect(fetch).not.toHaveBeenCalled();
-    });
-
-    test('tracks the first page view of a session with its referrer', () => {
-        visit('/', 'https://facebook.com/');
-
-        run();
-
-        expect(postedPayload()).toEqual({page: 'https://shop.example/', referrer: 'https://facebook.com/'});
-    });
-
-    test.each([
-        ['missing', null],
-        ['not a number', 'soon'],
-    ])('tracks every page view when the session timeout is %s', (_, sessionTimeout) => {
-        lastSeen(1);
-
-        run({sessionTimeout});
-
-        expect(fetch).toHaveBeenCalledTimes(1);
-    });
-
-    test('starts a new session when the stored timestamp is unreadable', () => {
-        window.localStorage.setItem(STORAGE_KEY, 'not a timestamp');
-
-        run();
-
-        expect(fetch).toHaveBeenCalledTimes(1);
-        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
-    });
-
-    test('tracks every page view when storage is unavailable', () => {
-        lastSeen(1);
-        jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-            throw new DOMException('The operation is insecure.', 'SecurityError');
+            expect(fetch).not.toHaveBeenCalled();
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
         });
 
-        run();
+        test('tracks a visitor again once the session timed out', () => {
+            lastSeen(30);
 
-        expect(fetch).toHaveBeenCalledTimes(1);
+            run();
+
+            expect(fetch).toHaveBeenCalledTimes(1);
+        });
+
+        test.each([
+            ['a campaign', '/?utm_source=newsletter&utm_medium=email', ''],
+            ['an ad click', '/product?gclid=abc', ''],
+            ['pagination, sorting and search', '/taxons/t-shirts?page=2&sorting[price]=asc&criteria[search][value]=red', ''],
+            ['returning from a payment gateway', '/en_US/order/thank-you?token=EC-123&PayerID=ABC', 'https://www.paypal.com/'],
+            ['another site', '/', 'https://facebook.com/'],
+            ['the shop itself', '/cart', 'https://shop.example/product/t-shirt'],
+        ])('is not bypassed by a page view from %s', (_, url, referrer) => {
+            lastSeen(1);
+            visit(url, referrer);
+
+            run();
+
+            expect(fetch).not.toHaveBeenCalled();
+        });
+
+        test('tracks the first page view of a session with its referrer', () => {
+            visit('/', 'https://facebook.com/');
+
+            run();
+
+            expect(postedPayload()).toEqual({page: 'https://shop.example/', referrer: 'https://facebook.com/'});
+        });
+
+        test.each([
+            ['missing', null],
+            ['not a number', 'soon'],
+        ])('tracks every page view when the session timeout is %s', (_, sessionTimeout) => {
+            lastSeen(1);
+
+            run({sessionTimeout});
+
+            expect(fetch).toHaveBeenCalledTimes(1);
+        });
+
+        test('starts a new session when the stored timestamp is unreadable', () => {
+            window.localStorage.setItem(STORAGE_KEY, 'not a timestamp');
+
+            run();
+
+            expect(fetch).toHaveBeenCalledTimes(1);
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
+        });
+
+        test('tracks every page view when storage is unavailable', () => {
+            lastSeen(1);
+            jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                throw new DOMException('The operation is insecure.', 'SecurityError');
+            });
+
+            run();
+
+            expect(fetch).toHaveBeenCalledTimes(1);
+        });
     });
-});
 
-describe('nothing is tracked', () => {
-    test('in a browser controlled through WebDriver (Selenium, Playwright, Puppeteer, ...)', () => {
-        stub(window.navigator, 'webdriver', true);
+    describe('nothing is tracked', () => {
+        test('in a browser controlled through WebDriver (Selenium, Playwright, Puppeteer, ...)', () => {
+            stub(window.navigator, 'webdriver', true);
 
-        run();
+            run();
 
-        expect(fetch).not.toHaveBeenCalled();
-        expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
-    });
+            expect(fetch).not.toHaveBeenCalled();
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
 
-    test('in a browser controlled by Cypress', () => {
-        window.Cypress = {};
+        test('in a browser controlled by Cypress', () => {
+            window.Cypress = {};
 
-        run();
+            run();
 
-        expect(fetch).not.toHaveBeenCalled();
-    });
+            expect(fetch).not.toHaveBeenCalled();
+        });
 
-    test('without an endpoint', () => {
-        run({endpoint: null});
+        test('without an endpoint', () => {
+            run({endpoint: null});
 
-        expect(fetch).not.toHaveBeenCalled();
-    });
+            expect(fetch).not.toHaveBeenCalled();
+        });
 
-    test('when the script cannot find its own tag', () => {
-        stub(document, 'currentScript', null);
-        jest.isolateModules(() => require(SCRIPT));
-
-        expect(fetch).not.toHaveBeenCalled();
-    });
-});
-
-describe('without document.currentScript', () => {
-    test('the script finds its tag by its id', () => {
-        // e.g. when Cloudflare Rocket Loader runs the script
-        const script = document.createElement('script');
-        script.id = 'ssca';
-        script.setAttribute('data-endpoint', '/track');
-        script.setAttribute('data-session-timeout', String(SESSION_TIMEOUT));
-        document.head.appendChild(script);
-
-        try {
+        test('when the script cannot find its own tag', () => {
             stub(document, 'currentScript', null);
             jest.isolateModules(() => require(SCRIPT));
 
-            expect(fetch).toHaveBeenCalledWith('/track', expect.objectContaining({method: 'POST'}));
-        } finally {
-            script.remove();
-        }
+            expect(fetch).not.toHaveBeenCalled();
+        });
     });
-});
 
-describe('a prerendered page', () => {
-    test('is tracked once it is shown, and only once', () => {
-        stub(document, 'prerendering', true);
+    describe('without document.currentScript', () => {
+        test('the script finds its tag by its id', () => {
+            // e.g. when Cloudflare Rocket Loader runs the script
+            const script = document.createElement('script');
+            script.id = 'ssca';
+            script.setAttribute('data-endpoint', '/track');
+            script.setAttribute('data-session-timeout', String(SESSION_TIMEOUT));
+            document.head.appendChild(script);
 
-        // no session throttle, so it can't hide a second POST
-        run({sessionTimeout: '0'});
+            try {
+                stub(document, 'currentScript', null);
+                jest.isolateModules(() => require(SCRIPT));
 
-        expect(fetch).not.toHaveBeenCalled();
-        expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+                expect(fetch).toHaveBeenCalledWith('/track', expect.objectContaining({method: 'POST'}));
+            } finally {
+                script.remove();
+            }
+        });
+    });
 
-        document.dispatchEvent(new Event('prerenderingchange'));
-        document.dispatchEvent(new Event('prerenderingchange'));
+    describe('a prerendered page', () => {
+        test('is tracked once it is shown, and only once', () => {
+            stub(document, 'prerendering', true);
 
-        expect(fetch).toHaveBeenCalledTimes(1);
+            // no session throttle, so it can't hide a second POST
+            run({sessionTimeout: '0'});
+
+            expect(fetch).not.toHaveBeenCalled();
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+
+            document.dispatchEvent(new Event('prerenderingchange'));
+            document.dispatchEvent(new Event('prerenderingchange'));
+
+            expect(fetch).toHaveBeenCalledTimes(1);
+        });
     });
 });
