@@ -8,9 +8,7 @@
  *
  * Configured through attributes on its own <script id="setono-sylius-conversion-attribution"> tag:
  * - data-endpoint: the URL to POST page views to
- * - data-session-timeout: seconds within which a returning visitor isn't tracked again
- * - data-campaign-parameters: space separated query parameters (utm_source, gclid, ...) that may carry a
- *   new traffic source, so a page view with one of them is tracked even within the session
+ * - data-session-timeout: seconds of inactivity after which a visitor's next page view is tracked again
  */
 (function () {
     'use strict';
@@ -36,23 +34,6 @@
     }
 
     var sessionTimeout = parseInt(script.getAttribute('data-session-timeout'), 10) * 1000;
-    var campaignParameters = (script.getAttribute('data-campaign-parameters') || '').split(' ');
-
-    // A campaign parameter (an ad click, a newsletter link, ...) may carry a new traffic source, so it
-    // bypasses the session throttle; the server side source matchers make the definitive call. Other
-    // query strings (pagination, sorting, search, ...) can't. A referrer from another site doesn't
-    // bypass it either: within a session that's mostly the customer returning from a payment gateway
-    // (PayPal, Stripe, ...), which would be stored as a referral and could take the credit for an order
-    function hasCampaignParameter() {
-        var query = new URLSearchParams(window.location.search);
-        for (var i = 0; i < campaignParameters.length; i++) {
-            if (query.get(campaignParameters[i])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     function track() {
         var now = Date.now();
@@ -66,7 +47,11 @@
             // storage unavailable (disabled, sandboxed iframe, ...): track every page view
         }
 
-        if (!hasCampaignParameter() && now - last < sessionTimeout) {
+        // Only the first page view of a session is tracked, with its URL and referrer: that's where the
+        // visitor came from. Later ones within the session aren't, not even with a query string or a
+        // referrer from another site. That keeps the source table small, and a customer returning from a
+        // payment gateway (PayPal, Stripe, ...) is never stored as a referral
+        if (now - last < sessionTimeout) {
             return;
         }
 

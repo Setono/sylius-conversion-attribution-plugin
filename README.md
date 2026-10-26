@@ -114,19 +114,17 @@ On every HTML page the plugin adds this tag (through the tag bag):
 
 ```html
 <script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=…" id="setono-sylius-conversion-attribution" defer
-        data-endpoint="/track" data-session-timeout="1800" data-campaign-parameters="utm_source gclid fbclid …"></script>
+        data-endpoint="/track" data-session-timeout="1800"></script>
 ```
 
 The script POSTs the page URL and the referrer to `/track`, where everything else is resolved server
 side: the client id from the `setono_client_id` cookie riding on the request, and the traffic source
 (utm parameters, click ids such as `gclid`/`fbclid`, the referrer) by the source matchers. To keep
 the `source` table small, a visitor isn't tracked again within `session_timeout` seconds (a rolling
-`localStorage` timestamp), unless the URL has a campaign parameter (`utm_source` or one of the
-click ids configured under `query_parameters`, such as `gclid` and `fbclid`), since that may carry a new
-traffic source. Other query strings (pagination, sorting, search) don't skip the throttle, and neither
-does a referrer from another site: within a session that's mostly a customer returning from a payment
-gateway (PayPal, Stripe, …), which must not be recorded as a referral. The first page view of a
-session is always tracked, with its referrer. Prerendered pages are tracked when they are shown, not before.
+`localStorage` timestamp): only the first page view of a session is tracked, with its URL and
+referrer, since that's where the visitor came from. Later page views within the session aren't, not
+even with campaign parameters or a referrer from another site, so a customer returning from a payment
+gateway (PayPal, Stripe, …) is never recorded as a referral. Prerendered pages are tracked when they are shown, not before.
 
 ### Optional runtime dependencies
 

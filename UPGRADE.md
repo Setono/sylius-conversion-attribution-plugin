@@ -37,7 +37,7 @@ If you redefine, decorate or extend these services, update the arguments:
 - `Controller\Action\TrackAction::__construct(SourceFactoryInterface $sourceFactory, ManagerRegistry $managerRegistry, BotDetectorInterface $botDetector, ClientContextInterface $clientContext, SourceMatcherInterface $sourceMatcher, ValidatorInterface $validator, string $defaultSource)`.
   All arguments are required. `__invoke()` takes a `TrackPayload` and the (required) `Request`, and
   builds the `Source` itself.
-- `EventSubscriber\AddJavascriptSubscriber::__construct(TagBagInterface $tagBag, UrlGeneratorInterface $urlGenerator, Packages $packages, int $sessionTimeout, array $campaignParameters, string $scriptVersion)`.
+- `EventSubscriber\AddJavascriptSubscriber::__construct(TagBagInterface $tagBag, UrlGeneratorInterface $urlGenerator, Packages $packages, int $sessionTimeout, string $scriptVersion)`.
   The client information resolver, bot detector, cookie provider and source matcher arguments are gone.
   The subscriber adds a `ScriptTag` instead of an `InlineScriptTag`.
 - `SourceFactoryInterface::createFromClientInformation()` is removed; use `createNew()` and the setters.

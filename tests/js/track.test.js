@@ -8,16 +8,13 @@ const SESSION_TIMEOUT = 1800;
 /**
  * Runs the tracking script as if it was loaded by <script data-endpoint=... data-session-timeout=...>
  */
-function run({endpoint = '/track', sessionTimeout = String(SESSION_TIMEOUT), campaignParameters = 'utm_source gclid fbclid'} = {}) {
+function run({endpoint = '/track', sessionTimeout = String(SESSION_TIMEOUT)} = {}) {
     const script = document.createElement('script');
     if (endpoint !== null) {
         script.setAttribute('data-endpoint', endpoint);
     }
     if (sessionTimeout !== null) {
         script.setAttribute('data-session-timeout', sessionTimeout);
-    }
-    if (campaignParameters !== null) {
-        script.setAttribute('data-campaign-parameters', campaignParameters);
     }
 
     stub(document, 'currentScript', script);
@@ -120,49 +117,13 @@ describe('the session throttle', () => {
     });
 
     test.each([
-        ['a utm_source', '/?utm_source=newsletter&utm_medium=email'],
-        ['a click id', '/product?gclid=abc'],
-        ['a campaign parameter after others', '/?page=2&fbclid=abc'],
-    ])('is bypassed by %s, which may carry a new traffic source', (_, url) => {
-        lastSeen(1);
-        visit(url);
-
-        run();
-
-        expect(postedPayload()).toEqual({page: 'https://shop.example' + url});
-    });
-
-    test.each([
-        ['pagination, sorting and search', '/taxons/t-shirts?page=2&sorting[price]=asc&criteria[search][value]=red'],
-        ['an empty campaign parameter', '/?gclid='],
-        ['a parameter that merely contains a campaign parameter name', '/?xgclid=abc&utm_source_x=y'],
-    ])('is not bypassed by %s', (_, url) => {
-        lastSeen(1);
-        visit(url);
-
-        run();
-
-        expect(fetch).not.toHaveBeenCalled();
-    });
-
-    test.each([
-        ['missing', null],
-        ['empty', ''],
-    ])('is not bypassed by any query parameter when the campaign parameters are %s', (_, campaignParameters) => {
-        lastSeen(1);
-        visit('/?utm_source=newsletter');
-
-        run({campaignParameters});
-
-        expect(fetch).not.toHaveBeenCalled();
-    });
-
-    test.each([
+        ['a campaign', '/?utm_source=newsletter&utm_medium=email', ''],
+        ['an ad click', '/product?gclid=abc', ''],
+        ['pagination, sorting and search', '/taxons/t-shirts?page=2&sorting[price]=asc&criteria[search][value]=red', ''],
         ['returning from a payment gateway', '/en_US/order/thank-you?token=EC-123&PayerID=ABC', 'https://www.paypal.com/'],
         ['another site', '/', 'https://facebook.com/'],
         ['the shop itself', '/cart', 'https://shop.example/product/t-shirt'],
-        ['an unparsable referrer', '/', 'not a url'],
-    ])('is not bypassed by a referrer: %s', (_, url, referrer) => {
+    ])('is not bypassed by a page view from %s', (_, url, referrer) => {
         lastSeen(1);
         visit(url, referrer);
 
@@ -256,11 +217,10 @@ describe('without document.currentScript', () => {
 
 describe('a prerendered page', () => {
     test('is tracked once it is shown, and only once', () => {
-        // a campaign URL, so the session throttle can't hide a second POST
-        visit('/?utm_source=newsletter');
         stub(document, 'prerendering', true);
 
-        run();
+        // no session throttle, so it can't hide a second POST
+        run({sessionTimeout: '0'});
 
         expect(fetch).not.toHaveBeenCalled();
         expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
