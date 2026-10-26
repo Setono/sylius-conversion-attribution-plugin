@@ -52,7 +52,11 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
                 throw new \LogicException(sprintf('The tracking script "%s" could not be read', $script));
             }
 
-            // Rebuild the container (and thereby bump the script's cache busting version) when the script changes
+            // The script's URL carries a hash of its contents (?v=...), so browsers and CDNs fetch the new
+            // script after an upgrade. The hash is computed when the container is built, which happens on
+            // every deploy in production. In development, Symfony only rebuilds the cached container when one
+            // of the files it tracks changes; tracking the script means editing it bumps the hash too, instead
+            // of the page serving the old one until the cache is cleared
             $container->addResource(new FileResource($script));
             $container->setParameter('setono_sylius_conversion_attribution.javascript.version', substr($scriptHash, 0, 12));
 
