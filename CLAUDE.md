@@ -31,6 +31,16 @@ The test app in `tests/Application` is used by CI for linting and schema validat
 (cd tests/Application && bin/console doctrine:schema:validate -vvv)
 ```
 
+End-to-end tests (`tests/e2e`, Playwright; config in `tests/Application/playwright.config.js`, CI job "End-to-end tests") drive the test application in a real browser: the tracking tag and script, `POST /track` storing sources for the visitor's cookie, the session throttle, bots, and a guest checkout credited in the admin order page. They run the app in the **prod** environment (the test environment's mock session storage sends no cookies) behind PHP's built-in server (`tests/e2e/support/router.php`, port `E2E_PORT`, default 8089). The global setup (`tests/e2e/support/global-setup.js`) drops and recreates the database named by `E2E_DATABASE_URL`, never the ambient `DATABASE_URL`. The variable is required and the database name must end in `_e2e`, both enforced in `tests/e2e/support/app.js`, so a run can't wipe another database. It then loads Sylius' default fixtures, installs assets and rebuilds the prod cache; `E2E_SKIP_SETUP=1` skips it. `PHP_BINARY` picks the PHP binary (default `php`). Locally, with a throwaway MariaDB:
+
+```bash
+docker run -d --name sylius-conversion-attribution-e2e-db -p 3308:3306 -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 mariadb:11.6
+(cd tests/Application && yarn install && yarn build && npx playwright install chromium)
+(cd tests/Application && E2E_DATABASE_URL='mysql://root@127.0.0.1:3308/setono_sylius_conversion_attribution_e2e?serverVersion=11.6.2-MariaDB' PHP_BINARY="$(brew --prefix php@8.1)/bin/php" yarn e2e)
+```
+
+The tests run as a regular browser: `tests/e2e/support/test.js` overrides Playwright's `navigator.webdriver` (opt in with `test.use({webdriver: true})`), and the config sets a desktop Chrome user agent, since both the script and the server side bot detection skip automation. `state()` reads what was stored for the visitor through `tests/e2e/support/state.php`.
+
 Note: `phpunit.xml.dist` bootstraps `tests/Application/config/bootstrap.php`, and `tests/Parser/ReferrerParserFunctionalTest.php` exercises the real referrer database, so tests need `composer install` to have run and network access for that test.
 
 ## Architecture
