@@ -27,6 +27,10 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
         $this->load();
 
         $this->assertContainerBuilderHasService(AddJavascriptSubscriber::class);
+        $this->assertContainerBuilderHasParameter(
+            'setono_sylius_conversion_attribution.javascript.version',
+            substr((string) hash_file('xxh128', __DIR__ . '/../../src/Resources/public/js/track.js'), 0, 12),
+        );
     }
 
     /**

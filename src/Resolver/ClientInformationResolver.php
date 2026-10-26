@@ -8,27 +8,19 @@ use Setono\ClientBundle\Context\ClientContextInterface;
 use Setono\SyliusConversionAttributionPlugin\ClientInformation\ClientInformation;
 use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 final class ClientInformationResolver implements ClientInformationResolverInterface
 {
     public function __construct(
-        private readonly RequestStack $requestStack,
         private readonly ClientContextInterface $clientContext,
         private readonly SourceMatcherInterface $sourceMatcher,
         private readonly string $defaultSource = 'direct',
     ) {
     }
 
-    public function resolve(?Request $request = null): ClientInformation
+    public function resolve(Request $request): ClientInformation
     {
         $clientInformation = new ClientInformation();
-
-        $request = $request ?? $this->requestStack->getMainRequest();
-        if (null === $request) {
-            return $clientInformation;
-        }
-
         $clientInformation->clientId = $this->clientContext->getClient()->id;
         $clientInformation->page = $request->getUri();
         $clientInformation->ip = $request->getClientIp();

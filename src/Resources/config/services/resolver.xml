@@ -6,7 +6,6 @@
                  alias="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver"/>
 
         <service id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolver">
-            <argument type="service" id="request_stack"/>
             <argument type="service" id="Setono\ClientBundle\Context\ClientContextInterface"/>
             <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"/>
             <argument>%setono_sylius_conversion_attribution.source.default%</argument>

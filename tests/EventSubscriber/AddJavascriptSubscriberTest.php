@@ -5,228 +5,201 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\EventSubscriber;
 
 use PHPUnit\Framework\TestCase;
-use Setono\BotDetectionBundle\BotDetector\BotDetectorInterface;
-use Setono\Client\Cookie;
-use Setono\ClientBundle\CookieProvider\CookieProviderInterface;
-use Setono\SyliusConversionAttributionPlugin\ClientInformation\ClientInformation;
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber;
-use Setono\SyliusConversionAttributionPlugin\Matcher\Source;
-use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
-use Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolverInterface;
-use Setono\TagBag\Tag\InlineScriptTag;
+use Setono\TagBag\Renderer\ElementRenderer;
+use Setono\TagBag\Tag\ScriptTag;
 use Setono\TagBag\Tag\TagInterface;
 use Setono\TagBag\TagBagInterface;
+use Symfony\Component\Asset\Packages;
+use Symfony\Component\Asset\PathPackage;
+use Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy;
+use Symfony\Component\Asset\VersionStrategy\StaticVersionStrategy;
+use Symfony\Component\Asset\VersionStrategy\VersionStrategyInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/**
+ * The injected tag must be identical for every visitor: the rendered HTML may be stored by a full
+ * page cache and served to anyone (see issue #7)
+ */
 final class AddJavascriptSubscriberTest extends TestCase
 {
     /**
      * @test
      */
-    public function it_escapes_client_information_so_it_cannot_break_out_of_the_inline_script(): void
+    public function it_adds_a_static_script_tag(): void
     {
-        // Values an attacker can influence via the URL / Referer / User-Agent headers
-        $clientInformation = new ClientInformation();
-        $clientInformation->source = "src'BREAK";
-        $clientInformation->medium = 'med<BREAK';
-        $clientInformation->campaign = 'camp&BREAK';
-        $clientInformation->page = 'page"BREAK';
-        $clientInformation->referrer = 'https://evil/</script>';
-
-        $capturedTag = null;
-        $tagBag = $this->createMock(TagBagInterface::class);
-        $tagBag->expects(self::once())->method('add')->with(self::callback(
-            static function (TagInterface $tag) use (&$capturedTag): bool {
-                $capturedTag = $tag;
-
-                return true;
-            },
-        ));
-
-        $subscriber = $this->createSubscriber(
-            tagBag: $tagBag,
-            clientInformation: $clientInformation,
-            sourceMatcher: $this->matcherReturning(null),
-            cookie: null,
-        );
-
+        $tags = [];
+        $subscriber = $this->createSubscriber($this->capturingTagBag($tags));
         $subscriber->addJavascript($this->createRequestEvent());
 
-        self::assertInstanceOf(InlineScriptTag::class, $capturedTag);
-        $content = $capturedTag->getContent();
-
-        // The payload must appear only in its fully hardened form, where ', ", <, > and & are
-        // rendered as \uXXXX escapes
-        $hardened = json_encode(
-            $clientInformation,
-            \JSON_THROW_ON_ERROR | \JSON_HEX_TAG | \JSON_HEX_APOS | \JSON_HEX_QUOT | \JSON_HEX_AMP,
+        self::assertCount(1, $tags);
+        self::assertInstanceOf(ScriptTag::class, $tags[0]);
+        self::assertSame(
+            '<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" defer data-endpoint="/track" data-session-timeout="1800"></script>',
+            (new ElementRenderer())->render($tags[0]),
         );
-        self::assertStringContainsString($hardened, $content);
-
-        // None of the raw break-out sequences may survive into the <script> body
-        self::assertStringNotContainsString("src'BREAK", $content);
-        self::assertStringNotContainsString('med<BREAK', $content);
-        self::assertStringNotContainsString('camp&BREAK', $content);
-        self::assertStringNotContainsString('</script>', $content);
     }
 
     /**
      * @test
      */
-    public function it_tracks_a_campaign_click_even_within_the_session_window(): void
+    public function it_adds_an_identical_tag_for_different_visitors(): void
     {
-        $tagBag = $this->createMock(TagBagInterface::class);
-        $tagBag->expects(self::once())->method('add');
+        $tags = [];
+        $subscriber = $this->createSubscriber($this->capturingTagBag($tags));
 
-        $subscriber = $this->createSubscriber(
-            tagBag: $tagBag,
-            clientInformation: new ClientInformation(),
-            // A campaign marker was matched on this request ...
-            sourceMatcher: $this->matcherReturning(new Source('google', 'cpc')),
-            // ... even though the visitor was seen a moment ago
-            cookie: new Cookie('client-id'),
-        );
+        // Two visitors with different identities, campaigns, referrers and user agents
+        $subscriber->addJavascript($this->createRequestEvent(Request::create(
+            'https://shop.example/?utm_source=google&utm_medium=cpc',
+            'GET',
+            [],
+            ['setono_client_id' => 'client-a'],
+            [],
+            ['HTTP_REFERER' => 'https://google.com/', 'HTTP_USER_AGENT' => 'Browser A'],
+        )));
+        $subscriber->addJavascript($this->createRequestEvent(Request::create(
+            'https://shop.example/some/other/page',
+            'GET',
+            [],
+            ['setono_client_id' => 'client-b'],
+            [],
+            ['HTTP_REFERER' => 'https://shop.example/', 'HTTP_USER_AGENT' => 'Browser B'],
+        )));
 
-        $subscriber->addJavascript($this->createRequestEvent());
+        self::assertCount(2, $tags);
+        self::assertEquals($tags[0], $tags[1]);
     }
 
     /**
      * @test
      */
-    public function it_skips_a_non_campaign_request_within_the_session_window(): void
+    public function it_appends_the_script_version_to_an_already_versioned_url(): void
     {
-        $tagBag = $this->createMock(TagBagInterface::class);
-        $tagBag->expects(self::never())->method('add');
-
-        $subscriber = $this->createSubscriber(
-            tagBag: $tagBag,
-            clientInformation: new ClientInformation(),
-            sourceMatcher: $this->matcherReturning(null),
-            cookie: new Cookie('client-id'),
-        );
-
+        // The host app's asset version strategy may already have added a query string
+        $tags = [];
+        $subscriber = $this->createSubscriber($this->capturingTagBag($tags), versionStrategy: new StaticVersionStrategy('v1'));
         $subscriber->addJavascript($this->createRequestEvent());
+
+        self::assertInstanceOf(ScriptTag::class, $tags[0]);
+        self::assertSame('/bundles/setonosyliusconversionattributionplugin/js/track.js?v1&amp;v=abc123', $tags[0]->getSrc());
     }
 
     /**
      * @test
      */
-    public function it_does_not_track_bot_requests(): void
+    public function it_escapes_the_attribute_values(): void
     {
-        $tagBag = $this->createMock(TagBagInterface::class);
-        $tagBag->expects(self::never())->method('add');
-
-        $sourceMatcher = $this->createMock(SourceMatcherInterface::class);
-        $sourceMatcher->expects(self::never())->method('match');
-
+        // The tag bag renders attribute values raw, so a hostile base path or route prefix must not
+        // be able to break out of the attribute
+        $tags = [];
         $subscriber = $this->createSubscriber(
-            tagBag: $tagBag,
-            clientInformation: new ClientInformation(),
-            sourceMatcher: $sourceMatcher,
-            cookie: null,
-            isBot: true,
+            $this->capturingTagBag($tags),
+            trackUrl: '/track"><script>alert(1)</script>',
+            basePath: '/shop"onload="x',
         );
-
         $subscriber->addJavascript($this->createRequestEvent());
+
+        self::assertInstanceOf(ScriptTag::class, $tags[0]);
+        self::assertSame(
+            '<script src="/shop&quot;onload=&quot;x/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" defer data-endpoint="/track&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" data-session-timeout="1800"></script>',
+            (new ElementRenderer())->render($tags[0]),
+        );
     }
 
     /**
      * @test
      *
-     * @group legacy
+     * @dataProvider nonTrackablePageViews
      */
-    public function it_triggers_a_deprecation_and_falls_back_when_no_source_matcher_is_injected(): void
+    public function it_does_not_add_the_script_for_non_trackable_page_views(string $case): void
     {
         $tagBag = $this->createMock(TagBagInterface::class);
         $tagBag->expects(self::never())->method('add');
 
-        // Legacy wiring: no source matcher. Construction must warn about the deprecation, and a
-        // recent cookie must still short-circuit tracking (the missing matcher must not blow up).
-        $deprecations = $this->captureDeprecations(function () use ($tagBag): void {
-            $subscriber = $this->createSubscriber(
-                tagBag: $tagBag,
-                clientInformation: new ClientInformation(),
-                sourceMatcher: null,
-                cookie: new Cookie('client-id'),
-            );
+        $subscriber = $this->createSubscriber($tagBag);
+        $subscriber->addJavascript($this->createNonTrackableRequestEvent($case));
+    }
 
-            $subscriber->addJavascript($this->createRequestEvent());
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function nonTrackablePageViews(): iterable
+    {
+        yield 'sub request' => ['sub_request'];
+        yield 'xhr request' => ['xhr'];
+        yield 'post request' => ['post'];
+        yield 'non-html request' => ['non_html'];
+    }
+
+    /**
+     * @param list<TagInterface> $tags
+     */
+    private function capturingTagBag(array &$tags): TagBagInterface
+    {
+        $tagBag = $this->createMock(TagBagInterface::class);
+        $tagBag->method('add')->willReturnCallback(static function (TagInterface $tag) use (&$tags, $tagBag): TagBagInterface {
+            $tags[] = $tag;
+
+            return $tagBag;
         });
 
-        self::assertNotEmpty($deprecations);
-        self::assertStringContainsString('$sourceMatcher', $deprecations[0]);
-    }
-
-    /**
-     * Runs $callback with a temporary handler that records E_USER_DEPRECATED messages.
-     *
-     * @return list<string>
-     */
-    private function captureDeprecations(callable $callback): array
-    {
-        $deprecations = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$deprecations): bool {
-            $deprecations[] = $errstr;
-
-            return true;
-        }, \E_USER_DEPRECATED);
-
-        try {
-            $callback();
-        } finally {
-            restore_error_handler();
-        }
-
-        return $deprecations;
+        return $tagBag;
     }
 
     private function createSubscriber(
         TagBagInterface $tagBag,
-        ClientInformation $clientInformation,
-        ?SourceMatcherInterface $sourceMatcher,
-        ?Cookie $cookie,
-        bool $isBot = false,
+        string $trackUrl = '/track',
+        string $basePath = '',
+        VersionStrategyInterface $versionStrategy = new EmptyVersionStrategy(),
     ): AddJavascriptSubscriber {
-        $resolver = $this->createMock(ClientInformationResolverInterface::class);
-        $resolver->method('resolve')->willReturn($clientInformation);
-
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator->method('generate')->willReturn('/track');
-
-        $botDetector = $this->createMock(BotDetectorInterface::class);
-        $botDetector->method('isBotRequest')->willReturn($isBot);
-
-        $cookieProvider = $this->createMock(CookieProviderInterface::class);
-        $cookieProvider->method('getCookie')->willReturn($cookie);
+        $urlGenerator->method('generate')->with('setono_sylius_conversion_attribution_global_track')->willReturn($trackUrl);
 
         return new AddJavascriptSubscriber(
             $tagBag,
-            $resolver,
             $urlGenerator,
-            $botDetector,
-            $cookieProvider,
+            new Packages(new PathPackage($basePath, $versionStrategy)),
             1800,
-            $sourceMatcher,
+            'abc123',
         );
     }
 
-    private function matcherReturning(?Source $source): SourceMatcherInterface
-    {
-        $matcher = $this->createMock(SourceMatcherInterface::class);
-        $matcher->method('match')->willReturn($source);
-
-        return $matcher;
-    }
-
-    private function createRequestEvent(): RequestEvent
+    private function createRequestEvent(?Request $request = null): RequestEvent
     {
         return new RequestEvent(
             $this->createMock(HttpKernelInterface::class),
-            Request::create('https://shop.example/'),
+            $request ?? Request::create('https://shop.example/'),
             HttpKernelInterface::MAIN_REQUEST,
+        );
+    }
+
+    private function createNonTrackableRequestEvent(string $case): RequestEvent
+    {
+        $request = Request::create('https://shop.example/', 'post' === $case ? 'POST' : 'GET');
+        $type = HttpKernelInterface::MAIN_REQUEST;
+
+        switch ($case) {
+            case 'sub_request':
+                $type = HttpKernelInterface::SUB_REQUEST;
+
+                break;
+            case 'xhr':
+                $request->headers->set('X-Requested-With', 'XMLHttpRequest');
+
+                break;
+            case 'non_html':
+                $request->setRequestFormat('json');
+
+                break;
+        }
+
+        return new RequestEvent(
+            $this->createMock(HttpKernelInterface::class),
+            $request,
+            $type,
         );
     }
 }

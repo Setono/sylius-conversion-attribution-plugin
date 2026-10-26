@@ -86,6 +86,17 @@ php bin/console doctrine:migrations:diff
 php bin/console doctrine:migrations:migrate
 ```
 
+### Install assets
+
+The tracking script is shipped as a bundle asset, so make sure assets are installed (Sylius'
+installation and deployment already do this):
+
+```bash
+php bin/console assets:install
+```
+
+If the script isn't installed, the browser gets a 404 for it and nothing is tracked.
+
 ### Prune old sources (recommended)
 
 Every tracked hit creates a `source` row, so the table grows continuously. Schedule the prune
@@ -97,20 +108,54 @@ php bin/console setono:sylius-conversion-attribution:prune
 
 ## Notes
 
+### How tracking works
+
+On every HTML page the plugin adds this tag (through the tag bag):
+
+```html
+<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=…" defer
+        data-endpoint="/track" data-session-timeout="1800"></script>
+```
+
+The script POSTs the page URL and the referrer to `/track`, where everything else is resolved server
+side: the client id from the `setono_client_id` cookie riding on the request, and the traffic source
+(utm parameters, click ids such as `gclid`/`fbclid`, the referrer) by the source matchers. To keep
+the `source` table small, a visitor isn't tracked again within `session_timeout` seconds (a rolling
+`localStorage` timestamp), unless the URL has a query string or the referrer is another site, since
+both may carry a new traffic source. Prerendered pages are tracked when they are shown, not before.
+
 ### Optional runtime dependencies
 
 - The default JavaScript injection requires [`setono/tag-bag-bundle`](https://github.com/Setono/TagBagBundle).
   Without it, enabling the `javascript` feature throws at container build time. Install it, or set
-  `setono_sylius_conversion_attribution.javascript.enabled: false` and inject the tracking snippet yourself.
-- Bot filtering (both for the injected snippet and the `/track` endpoint) is provided by
-  `setono/bot-detection-bundle`, which is installed automatically as a dependency.
+  `setono_sylius_conversion_attribution.javascript.enabled: false` and render the script tag above yourself.
+- Bot filtering (for the `/track` endpoint) is provided by `setono/bot-detection-bundle`, which is
+  installed automatically as a dependency. Most bots are filtered structurally anyway: they don't
+  execute JavaScript, so they never POST to `/track`. Automated browsers that *do* execute JavaScript
+  (Selenium, Puppeteer, Playwright, Cypress, headless Chrome, …) are skipped by the script itself via
+  the standardized `navigator.webdriver` flag (and Cypress' `window.Cypress`). This also keeps your
+  own end-to-end test runs out of the attribution data.
 
 ### Full page cache
 
-The injected tracking snippet embeds a server-resolved client id. If a full page / HTTP cache stores
-the rendered HTML, every visitor served that cached page shares the same embedded client id, which
-corrupts attribution. Exclude pages carrying the snippet from full page caching, or only enable the
-feature on responses that are not cached.
+The script tag is static (identical for every visitor), so pages carrying it are safe to store in a
+full page / HTTP cache (Varnish, a CDN, Symfony HttpCache, …). Nothing per-visitor is rendered into
+the HTML. Make sure your layout renders the tag bag on cacheable pages: if a page never renders it,
+the tag bag stores the pending tag in the session, which can make the response uncacheable.
+
+If your cache strips `Set-Cookie` from cached responses (it generally should), first-time visitors
+get their client cookie on the uncached `POST /track` response instead, so attribution still works.
+
+### Content Security Policy
+
+The script is a same-origin file, not an inline script, so a strict CSP needs no `'unsafe-inline'`,
+hashes or nonces (nonces couldn't work with full page caching anyway). Allow the script in
+`script-src` (`'self'`, or your asset CDN if you serve assets from one) and the `/track` endpoint in
+`connect-src`:
+
+```
+Content-Security-Policy: script-src 'self'; connect-src 'self'
+```
 
 ### Privacy / GDPR
 

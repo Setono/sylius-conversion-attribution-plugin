@@ -4,12 +4,10 @@
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber">
             <argument type="service" id="setono_tag_bag.tag_bag"/>
-            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolverInterface"/>
             <argument type="service" id="router"/>
-            <argument type="service" id="setono_bot_detection.bot_detector.default"/>
-            <argument type="service" id="setono_client.cookie_provider.default"/>
+            <argument type="service" id="assets.packages"/>
             <argument>%setono_sylius_conversion_attribution.session_timeout%</argument>
-            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface"/>
+            <argument>%setono_sylius_conversion_attribution.javascript.version%</argument>
 
             <tag name="kernel.event_subscriber"/>
         </service>

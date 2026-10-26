@@ -26,7 +26,7 @@ final class ClientInformationTest extends TestCase
     public function it_rejects_an_over_long_value(): void
     {
         // Without this constraint an over-long value reaches the string column and blows up with a
-        // 500 on flush; the constraint turns it into a 422 at the MapRequestPayload boundary instead
+        // 500 on flush; TrackAction validates the resolved values and answers 422 instead
         $clientInformation = new ClientInformation();
         $clientInformation->clientId = str_repeat('a', 256);
 
@@ -44,16 +44,5 @@ final class ClientInformationTest extends TestCase
         $clientInformation->source = 'google';
 
         self::assertCount(0, $this->validator->validate($clientInformation));
-    }
-
-    /**
-     * @test
-     */
-    public function it_filters_empty_values_when_serialized(): void
-    {
-        $clientInformation = new ClientInformation();
-        $clientInformation->source = 'google';
-
-        self::assertSame(['source' => 'google'], $clientInformation->jsonSerialize());
     }
 }

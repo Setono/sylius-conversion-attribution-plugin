@@ -6,7 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\ClientInformation;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final class ClientInformation implements \JsonSerializable
+final class ClientInformation
 {
     #[Assert\Length(max: 255)]
     public ?string $clientId = null;
@@ -31,28 +31,4 @@ final class ClientInformation implements \JsonSerializable
 
     #[Assert\Length(max: 255)]
     public ?string $campaign = null;
-
-    public function jsonSerialize(): array
-    {
-        return array_filter([
-            'clientId' => $this->clientId,
-            'ip' => $this->ip,
-            'userAgent' => $this->userAgent,
-            'page' => $this->page,
-            'referrer' => $this->referrer,
-            'source' => $this->source,
-            'medium' => $this->medium,
-            'campaign' => $this->campaign,
-        ], static function (mixed $value): bool {
-            if (null === $value) {
-                return false;
-            }
-
-            if ('' === $value) {
-                return false;
-            }
-
-            return true;
-        });
-    }
 }

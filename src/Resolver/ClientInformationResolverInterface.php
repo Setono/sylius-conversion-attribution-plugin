@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 interface ClientInformationResolverInterface
 {
     /**
-     * Will resolve client information from the request (if set), else it will use the main request
+     * Resolves client information for the page view described by the given request
      */
-    public function resolve(?Request $request = null): ClientInformation;
+    public function resolve(Request $request): ClientInformation;
 }
