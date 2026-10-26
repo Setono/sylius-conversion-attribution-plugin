@@ -19,6 +19,7 @@ vendor/bin/rector process --dry-run   # Rector (CI runs this, non-blocking)
 vendor/bin/infection                  # Mutation testing (minCoveredMsi: 100)
 vendor/bin/composer-dependency-analyser  # Dependency analysis (CI-enforced)
 composer normalize --dry-run          # composer.json normalization (CI-enforced)
+(cd tests/Application && yarn install && yarn test)  # Jest tests for the tracking script (tests/js, CI-enforced)
 ```
 
 The test app in `tests/Application` is used by CI for linting and schema validation (needs MySQL via `DATABASE_URL`, `APP_ENV=test`):
@@ -37,20 +38,20 @@ Note: `phpunit.xml.dist` bootstraps `tests/Application/config/bootstrap.php`, an
 The plugin tracks *where a visitor came from* and later ties that to the order they place. The flow has two halves:
 
 **Capture (visitor side):**
-1. `EventSubscriber\AddJavascriptSubscriber` (only loaded when `javascript.enabled` config is true, and requires `setono/tag-bag-bundle` — the extension throws a LogicException if it is missing) injects a JS `fetch()` POST to `/track` on GET HTML requests. It skips bots (`setono/bot-detection-bundle`) and skips visitors seen within `session_timeout` (default 1800s), using the cookie from `setono/client-bundle`.
-2. `Controller\Action\TrackAction` (route `setono_sylius_conversion_attribution_global_track`) maps the JSON payload to `ClientInformation\ClientInformation` via `#[MapRequestPayload]` and persists a `Model\Source` row (client id, page, referrer, source/medium/campaign).
-3. `Resolver\ClientInformationResolver` builds that payload server-side at injection time: client id from client-bundle's `ClientContext`, plus source/medium/campaign from the matcher chain (falls back to source `direct`).
+1. `EventSubscriber\AddJavascriptSubscriber` (only loaded when `javascript.enabled` config is true, and requires `setono/tag-bag-bundle` — the extension throws a LogicException if it is missing) adds a **static** `<script src id defer data-endpoint data-session-timeout>` tag for `src/Resources/public/js/track.js` (installed by `assets:install`; URL via `assets.packages`, cache-busted with a content hash computed in the extension) on main-request GET HTML responses. The tag is identical for every visitor so full page caches can safely store it (issue #7) — nothing per-visitor may influence the tag or the injection decision.
+2. `track.js` (plain ES5-style JS, no build step, tested with Jest in `tests/js`) finds its tag via `document.currentScript`, falling back to the tag's id for script optimizers like Rocket Loader, skips automated browsers (`navigator.webdriver`, `window.Cypress`), waits for prerendered pages to be shown, throttles itself via a rolling `localStorage` last-seen timestamp (`session_timeout`, default 1800s) so only the first page view of a session is tracked (no bypass for campaign parameters or cross-host referrers: within a session the latter is mostly a customer returning from a payment gateway), and POSTs only `{page, referrer}` to `/track`.
+3. `Controller\Action\TrackAction` (route `setono_sylius_conversion_attribution_global_track`) maps the JSON payload to `Controller\Action\TrackPayload` via `#[MapRequestPayload]`, drops bot traffic (`setono/bot-detection-bundle`) and builds the `Model\Source` itself: client id from client-bundle's `ClientContext` (which reads the `setono_client_id` cookie riding on the POST request), page/referrer from the payload, IP/UA from the real request, and source/medium/campaign from the matcher chain, given a `Matcher\PageView` (the posted page URL and referrer; falls back to source `direct`). It validates the entity against `src/Resources/config/validation/Source.xml` (lengths of the string columns; 422 if too long) before persisting.
 
-**Source matching chain:** `Matcher\CompositeSourceMatcher` is populated via `CompositeCompilerPass` from services tagged `setono_sylius_conversion_attribution.source_matcher` (see `SetonoSyliusConversionAttributionPlugin::build()`). First non-null match wins. Built-in matchers, in priority order (priorities set in `services/matcher.xml`):
+**Source matching chain:** Matchers implement `Matcher\SourceMatcherInterface::match(PageView $pageView)`. `Matcher\CompositeSourceMatcher` is populated via `CompositeCompilerPass` from services tagged `setono_sylius_conversion_attribution.source_matcher` (see `SetonoSyliusConversionAttributionPlugin::build()`). First non-null match wins. Built-in matchers, in priority order (priorities set in `services/matcher.xml`):
 - `UtmQueryParameterBasedSourceMatcher` — utm_source/utm_medium/utm_campaign
 - `QueryParameterBasedSourceMatcher` — click-id params (fbclid, gclid, msclkid, ttclid, twclid, …). The mapping comes from the `query_parameters` config; defaults are prepended in `SetonoSyliusConversionAttributionExtension::prepend()`
-- `ReferrerBasedSourceMatcher` — parses the Referer header via `Parser\ReferrerParser`, which looks up hosts in Snowplow's referer database. `CacheWarmer\ReferrersCacheWarmer` downloads that database from S3 at cache warmup into a `PhpArrayAdapter` file (`%kernel.cache_dir%/referrers.php`). Same-host referrers are ignored; unknown cross-host referrers become source=host, medium=referral.
+- `ReferrerBasedSourceMatcher` — parses the page view's referrer via `Parser\ReferrerParser`, which looks up hosts in Snowplow's referer database. `CacheWarmer\ReferrersCacheWarmer` downloads that database from S3 at cache warmup into a `PhpArrayAdapter` file (`%kernel.cache_dir%/referrers.php`). Same-host referrers are ignored; unknown cross-host referrers become source=host, medium=referral.
 
 Note the distinction between the two `Source` classes: `Matcher\Source` is a value object (match result); `Model\Source` is the Doctrine entity (a Sylius resource, `setono_sylius_conversion_attribution.source`, mapped via `src/Resources/config/doctrine/model/Source.orm.xml`, integer auto-increment ids).
 
 **Attribution (order side):**
 1. On `sylius.order.pre_complete`, `EventSubscriber\AddClientIdSubscriber` stamps the current client id on the order and customer. Host applications must add `OrderInterface`/`OrderTrait` and `CustomerInterface`/`CustomerTrait` (from `src/Model/`) to their Order/Customer entities — see README.
-2. `Provider\OrderAttributionProvider` finds the newest non-`direct` Source row for the order's client id.
+2. `Provider\OrderAttributionProvider` finds the newest non-`direct` Source row for the order's client id that was tracked up to the order's `checkoutCompletedAt`, so visits after checkout (e.g. returning from a payment gateway) never take the credit.
 3. The admin order page shows this via a `sylius_ui` block (`sylius.admin.order.show.sidebar`, prepended in the extension) rendering `src/Resources/views/order/attribution.html.twig` through the Twig extension/runtime in `src/Twig/`.
 
 **Maintenance:** `Command\PruneCommand` (`setono:sylius-conversion-attribution:prune`) deletes Source rows older than 180 days.
@@ -59,20 +60,20 @@ Note the distinction between the two `Source` classes: `Matcher\Source` is a val
 
 - Service definitions are XML, split per concern in `src/Resources/config/services/*.xml` and aggregated by `services.xml`. Services only loaded under config conditions live in `services/conditional/`.
 - Interfaces sit next to implementations (`FooInterface` + `Foo`); services are `final` and constructor-injected; Doctrine access goes through `setono/doctrine-orm-trait`'s `ORMTrait` with the resource class name passed as a string parameter (so host apps can override the model class).
-- CI (`.github/workflows/build.yaml`) tests PHP 8.1/8.2 with lowest and highest dependencies against Symfony ~6.4.0 — keep code compatible with both dependency extremes and PHP 8.1 syntax.
+- CI (`.github/workflows/build.yaml`) tests PHP 8.1/8.2 with lowest and highest dependencies against Symfony ~6.4.0 — keep code compatible with both dependency extremes and PHP 8.1 syntax. It also runs the Jest suite on Node 22.
 
 ### Backwards compatibility: adding a constructor argument
 
 This is a published library: adding a required constructor argument to a service (or reordering existing ones) breaks host apps that have redefined the service, decorated it, or instantiate it directly. Follow Symfony's own deprecation layer instead (e.g. `Symfony\Bridge\Doctrine\DataCollector\DoctrineDataCollector::__construct`):
 
 1. Append the new argument **last**, typed **nullable with a `null` default** — never insert it in the middle.
-2. In the constructor body, when the argument is `null`, call `trigger_deprecation()` (from `symfony/deprecation-contracts`, a `require` dependency) telling integrators to start passing it. The **version** argument is the release that introduced the deprecation; the message states which major will require it:
+2. In the constructor body, when the argument is `null`, call `trigger_deprecation()` (from `symfony/deprecation-contracts`; add it to `require` with the first shim, 2.0 dropped it) telling integrators to start passing it. The **version** argument is the release that introduced the deprecation; the message states which major will require it:
    ```php
    if (null === $sourceMatcher) {
        trigger_deprecation(
            'setono/sylius-conversion-attribution-plugin',
-           '1.1', // version the arg became "should be passed"
-           'Not passing an instance of "%s" as argument "$sourceMatcher" to "%s()" is deprecated and will be required in 2.0.',
+           '2.1', // version the arg became "should be passed"
+           'Not passing an instance of "%s" as argument "$sourceMatcher" to "%s()" is deprecated and will be required in 3.0.',
            SourceMatcherInterface::class,
            __METHOD__,
        );
@@ -80,8 +81,8 @@ This is a published library: adding a required constructor argument to a service
    ```
 3. Guard every use of the argument against `null` so the old behaviour still works when it is absent.
 4. Still inject it in the plugin's own XML service definition (also appended last) so normal installs get full functionality — the nullability only cushions downstream overrides.
-5. Add a `@deprecated will be required in 2.0` comment on the property so it's greppable alongside the `trigger_deprecation()` call.
+5. Add a `@deprecated will be required in 3.0` comment on the property so it's greppable alongside the `trigger_deprecation()` call.
 
-**Removing the shim in the next major:** grep the `src/` tree for `trigger_deprecation` — each hit is a nullable argument to make required (drop the `?`/`= null`, delete the `trigger_deprecation` block and the null-guards). Current shims: `EventSubscriber\AddJavascriptSubscriber` (`$sourceMatcher`) and `Controller\Action\TrackAction` (`$botDetector`).
+**Removing the shim in the next major:** grep the `src/` tree for `trigger_deprecation` — each hit is a nullable argument to make required (drop the `?`/`= null`, delete the `trigger_deprecation` block and the null-guards). Current shims: none (2.0 dropped all of 1.x's; see `UPGRADE.md`).
 
-Test the legacy path by constructing the service without the new argument and asserting the deprecation fires (see `it_triggers_a_deprecation_*` tests, which register a temporary `E_USER_DEPRECATED` handler). Mark such tests `@group legacy`.
+Test the legacy path by constructing the service without the new argument and asserting the deprecation fires (register a temporary `E_USER_DEPRECATED` handler with `set_error_handler()` around the construction). Mark such tests `@group legacy`.

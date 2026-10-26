@@ -6,7 +6,6 @@ namespace Setono\SyliusConversionAttributionPlugin\Matcher;
 
 use Setono\SyliusConversionAttributionPlugin\Parser\Referrer;
 use Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParserInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
 {
@@ -16,10 +15,10 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
     ) {
     }
 
-    public function match(Request $request): ?Source
+    public function match(PageView $pageView): ?Source
     {
-        $referrer = $request->headers->get('referer');
-        if (!is_string($referrer) || '' === $referrer) {
+        $referrer = $pageView->referrer;
+        if (null === $referrer || '' === $referrer) {
             return null;
         }
 
@@ -33,7 +32,7 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
             return null;
         }
 
-        if ($request->getHost() === $host) {
+        if ($pageView->host === $host) {
             return null;
         }
 

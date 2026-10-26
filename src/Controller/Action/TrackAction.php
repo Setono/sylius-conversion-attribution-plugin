@@ -6,11 +6,15 @@ namespace Setono\SyliusConversionAttributionPlugin\Controller\Action;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Setono\BotDetectionBundle\BotDetector\BotDetectorInterface;
+use Setono\ClientBundle\Context\ClientContextInterface;
 use Setono\Doctrine\ORMTrait;
-use Setono\SyliusConversionAttributionPlugin\ClientInformation\ClientInformation;
 use Setono\SyliusConversionAttributionPlugin\Factory\SourceFactoryInterface;
+use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
+use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class TrackAction
 {
@@ -19,32 +23,47 @@ final class TrackAction
     public function __construct(
         private readonly SourceFactoryInterface $sourceFactory,
         ManagerRegistry $managerRegistry,
-        // Nullable and last for backwards compatibility: when not injected, bot filtering is skipped.
-        // @deprecated will be required in 2.0 — grep "trigger_deprecation" to find shims to drop.
-        private readonly ?BotDetectorInterface $botDetector = null,
+        private readonly BotDetectorInterface $botDetector,
+        private readonly ClientContextInterface $clientContext,
+        private readonly SourceMatcherInterface $sourceMatcher,
+        private readonly ValidatorInterface $validator,
+        private readonly string $defaultSource,
     ) {
         $this->managerRegistry = $managerRegistry;
-
-        if (null === $botDetector) {
-            trigger_deprecation(
-                'setono/sylius-conversion-attribution-plugin',
-                '1.1',
-                'Not passing an instance of "%s" as argument "$botDetector" to "%s()" is deprecated and will be required in 2.0.',
-                BotDetectorInterface::class,
-                __METHOD__,
-            );
-        }
     }
 
-    public function __invoke(#[MapRequestPayload] ClientInformation $clientInformation): Response
+    public function __invoke(#[MapRequestPayload] TrackPayload $payload, Request $request): Response
     {
         // The endpoint is anonymous; drop bot traffic (matched on the real request User-Agent)
         // so automated hits don't flood the source table
-        if (null !== $this->botDetector && $this->botDetector->isBotRequest()) {
+        if ($this->botDetector->isBotRequest()) {
             return new Response(status: Response::HTTP_NO_CONTENT);
         }
 
-        $source = $this->sourceFactory->createFromClientInformation($clientInformation);
+        $referrer = null === $payload->referrer || '' === $payload->referrer ? null : $payload->referrer;
+
+        // The tracking script is static (full page cache safe), so everything per-visitor is resolved
+        // here. ClientContext reads the client id from the setono_client_id cookie on this (POST) request
+        $source = $this->sourceFactory->createNew();
+        $source->setClientId($this->clientContext->getClient()->id);
+        $source->setPage($payload->page);
+        $source->setReferrer($referrer);
+        $source->setIp($request->getClientIp());
+        $source->setUserAgent($request->headers->get('user-agent'));
+        $source->setSource($this->defaultSource);
+
+        $match = $this->sourceMatcher->match(new PageView($payload->page, $referrer));
+
+        if (null !== $match) {
+            $source->setSource($match->source);
+            $source->setMedium($match->medium);
+            $source->setCampaign($match->campaign);
+        }
+
+        // An over-long value (e.g. a utm_campaign longer than the column) is a 422, not a 500 on flush
+        if (\count($this->validator->validate($source)) > 0) {
+            return new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $manager = $this->getManager($source::class);
         $manager->persist($source);

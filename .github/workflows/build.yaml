@@ -193,6 +193,28 @@ jobs:
             -   name: "Run phpunit"
                 run: "composer phpunit"
 
+    javascript-tests:
+        name: "JavaScript tests"
+
+        runs-on: "ubuntu-latest"
+
+        steps:
+            -   name: "Checkout"
+                uses: "actions/checkout@v4"
+
+            -   name: "Setup Node"
+                uses: "actions/setup-node@v4"
+                with:
+                    node-version: "22"
+
+            -   name: "Install dependencies"
+                working-directory: "tests/Application"
+                run: "yarn install --non-interactive"
+
+            -   name: "Run Jest"
+                working-directory: "tests/Application"
+                run: "yarn test"
+
     integration-tests:
         name: "Integration tests (PHP${{ matrix.php-version }} | Deps: ${{ matrix.dependencies }} | SF${{ matrix.symfony }})"
 

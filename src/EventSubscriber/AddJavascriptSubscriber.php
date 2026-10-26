@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\EventSubscriber;
 
-use Setono\BotDetectionBundle\BotDetector\BotDetectorInterface;
-use Setono\ClientBundle\CookieProvider\CookieProviderInterface;
-use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
-use Setono\SyliusConversionAttributionPlugin\Resolver\ClientInformationResolverInterface;
-use Setono\TagBag\Tag\InlineScriptTag;
+use Setono\TagBag\Tag\ScriptTag;
 use Setono\TagBag\TagBagInterface;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -17,27 +14,19 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class AddJavascriptSubscriber implements EventSubscriberInterface
 {
+    /**
+     * The tracking script, as installed by assets:install from src/Resources/public
+     */
+    public const SCRIPT_PATH = 'bundles/setonosyliusconversionattributionplugin/js/track.js';
+
     public function __construct(
         private readonly TagBagInterface $tagBag,
-        private readonly ClientInformationResolverInterface $clientInformationResolver,
         private readonly UrlGeneratorInterface $urlGenerator,
-        private readonly BotDetectorInterface $botDetector,
-        private readonly CookieProviderInterface $cookieProvider,
+        private readonly Packages $packages,
         private readonly int $sessionTimeout,
-        // Nullable and last for backwards compatibility: when not injected, mid-session campaign
-        // detection is simply skipped and the previous first-touch-per-session behaviour applies.
-        // @deprecated will be required in 2.0 — grep "trigger_deprecation" to find shims to drop.
-        private readonly ?SourceMatcherInterface $sourceMatcher = null,
+        // A hash of the script's contents, so browsers and CDNs fetch the new script after an upgrade
+        private readonly string $scriptVersion,
     ) {
-        if (null === $sourceMatcher) {
-            trigger_deprecation(
-                'setono/sylius-conversion-attribution-plugin',
-                '1.1',
-                'Not passing an instance of "%s" as argument "$sourceMatcher" to "%s()" is deprecated and will be required in 2.0.',
-                SourceMatcherInterface::class,
-                __METHOD__,
-            );
-        }
     }
 
     public static function getSubscribedEvents(): array
@@ -51,51 +40,32 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
     {
         $request = $event->getRequest();
 
+        // Only conditions that are part of a full page cache's key (method, path, format) may
+        // influence whether the script is injected: the rendered HTML is shared between visitors,
+        // so any per-visitor decision (bot detection, session freshness) would be frozen into the
+        // cache by whichever visitor populated it. Per-visitor logic lives in the script itself
+        // (automation check, session throttle) or in TrackAction at POST time (bot filtering,
+        // client id, source matching).
         if (!$event->isMainRequest() ||
             $request->isXmlHttpRequest() ||
             !$request->isMethod('GET') ||
-            !str_contains((string) $request->getRequestFormat(), 'html') ||
-            $this->botDetector->isBotRequest($request)
+            !str_contains((string) $request->getRequestFormat(), 'html')
         ) {
             return;
         }
 
-        // A request that carries campaign markers (utm/click id/cross-host referrer) is always
-        // tracked, even mid-session, so a paid click arriving after an organic entry isn't lost
-        $hasCampaign = null !== $this->sourceMatcher && null !== $this->sourceMatcher->match($request);
+        $src = $this->packages->getUrl(self::SCRIPT_PATH);
+        $src .= (str_contains($src, '?') ? '&' : '?') . 'v=' . $this->scriptVersion;
 
-        if (!$hasCampaign) {
-            $clientCookie = $this->cookieProvider->getCookie();
-            if (null !== $clientCookie && $clientCookie->lastSeenAt >= (time() - $this->sessionTimeout)) {
-                return;
-            }
-        }
-
-        $clientInformation = $this->clientInformationResolver->resolve($request);
-        $javascript = <<<'JS'
-fetch('%s', {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: '%s'
-});
-JS;
-
-        try {
-            $javascript = sprintf(
-                $javascript,
-                $this->urlGenerator->generate('setono_sylius_conversion_attribution_global_track'),
-                // The payload is interpolated raw into an inline <script>, so the encoding must
-                // neutralize ', ", <, >, & to prevent breaking out of the JS string or the script tag
-                json_encode(
-                    $clientInformation,
-                    \JSON_THROW_ON_ERROR | \JSON_HEX_TAG | \JSON_HEX_APOS | \JSON_HEX_QUOT | \JSON_HEX_AMP,
-                ),
-            );
-
-            $this->tagBag->add(InlineScriptTag::create($javascript));
-        } catch (\JsonException) {
-        }
+        // The tag is identical for every visitor, so full page caches can safely store it. The tag
+        // bag renders attribute values raw, hence the escaping
+        $this->tagBag->add(
+            ScriptTag::create(htmlspecialchars($src))
+                // lets the script find its tag when document.currentScript is null (script optimizers)
+                ->withAttribute('id', 'ssca')
+                ->defer()
+                ->withAttribute('data-endpoint', htmlspecialchars($this->urlGenerator->generate('setono_sylius_conversion_attribution_global_track')))
+                ->withAttribute('data-session-timeout', $this->sessionTimeout),
+        );
     }
 }
