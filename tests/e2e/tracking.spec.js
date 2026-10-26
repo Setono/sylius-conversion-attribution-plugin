@@ -16,7 +16,7 @@ test('a landing page view is tracked and stored', async ({page, request, state})
     // assets:install put the script in place
     const script = await request.get(await tag.getAttribute('src'));
     expect(script.status()).toBe(200);
-    expect(await script.text()).toContain('setono_conversion_attribution_last_seen');
+    expect(await script.text()).toContain('data-session-timeout');
 
     // stored for the client id in the visitor's cookie, with the traffic source matched server side
     expect((await state()).sources).toEqual([{

@@ -56,9 +56,10 @@ exports.expect = base.expect;
 exports.tracked = (page) => page.waitForResponse((response) => response.request().method() === 'POST' && new URL(response.url()).pathname === '/track');
 
 /**
- * Makes the tracking script consider the session timed out, as if the visitor had been inactive for
- * longer than session_timeout (1800 s), so its next page view is tracked again
+ * Starts a new session for the tracking script, as if the visitor had been inactive for longer than
+ * session_timeout, so its next page view is tracked again. Clearing the storage drops the script's last
+ * seen timestamp whatever its key
  */
 exports.endSession = (page) => page.evaluate(() => {
-    window.localStorage.setItem('setono_conversion_attribution_last_seen', String(Date.now() - 31 * 60 * 1000));
+    window.localStorage.clear();
 });
