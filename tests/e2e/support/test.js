@@ -54,3 +54,11 @@ exports.expect = base.expect;
  * Waits for the page view's POST /track to be answered
  */
 exports.tracked = (page) => page.waitForResponse((response) => response.request().method() === 'POST' && new URL(response.url()).pathname === '/track');
+
+/**
+ * Makes the tracking script consider the session timed out, as if the visitor had been inactive for
+ * longer than session_timeout (1800 s), so its next page view is tracked again
+ */
+exports.endSession = (page) => page.evaluate(() => {
+    window.localStorage.setItem('setono_conversion_attribution_last_seen', String(Date.now() - 31 * 60 * 1000));
+});

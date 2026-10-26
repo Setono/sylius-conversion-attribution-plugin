@@ -1,4 +1,4 @@
-const {test, expect, tracked} = require('./support/test');
+const {test, expect, tracked, endSession} = require('./support/test');
 
 test('an order is credited to the campaign the customer came from, not to a payment gateway or a later visit', async ({page, trackRequests, state}) => {
     // landing from a newsletter
@@ -41,8 +41,9 @@ test('an order is credited to the campaign the customer came from, not to a paym
     expect(await page.evaluate(() => document.referrer)).toMatch(/^https:\/\/www\.paypal\.com\//);
     expect(trackRequests).toHaveLength(1); // the landing page view only
 
-    // after checkout, the customer comes back through an ad. The database stores times with second
-    // precision, so make sure that visit isn't in the same second as the checkout (a real one never is)
+    // later, in a new session, the customer comes back through an ad. The database stores times with
+    // second precision, so make sure that visit isn't in the same second as the checkout (a real one never is)
+    await endSession(page);
     await page.waitForTimeout(1000);
     response = tracked(page);
     await page.goto('/en_US/?utm_source=later&utm_medium=cpc');

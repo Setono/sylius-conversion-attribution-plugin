@@ -1,4 +1,4 @@
-const {test, expect, tracked} = require('./support/test');
+const {test, expect, tracked, endSession} = require('./support/test');
 
 const LANDING_PAGE = '/en_US/?utm_source=newsletter&utm_medium=email&utm_campaign=fall';
 
@@ -12,7 +12,6 @@ test('a landing page view is tracked and stored', async ({page, request, state})
     await expect(tag).toHaveAttribute('defer', '');
     await expect(tag).toHaveAttribute('data-endpoint', '/track');
     await expect(tag).toHaveAttribute('data-session-timeout', '1800');
-    await expect(tag).toHaveAttribute('data-campaign-parameters', /^utm_source( [a-z_]+)+$/);
 
     // assets:install put the script in place
     const script = await request.get(await tag.getAttribute('src'));
@@ -44,7 +43,7 @@ test('every visitor gets the same tag, so full page caches can store the page', 
     expect(tags[0]).toBe(tags[1]);
 });
 
-test('within a session, only page views that may carry a new traffic source are tracked', async ({page, trackRequests, state}) => {
+test('only the first page view of a session is tracked', async ({page, trackRequests, state}) => {
     const visit = async (navigate) => {
         const before = trackRequests.length;
         await navigate();
@@ -63,7 +62,11 @@ test('within a session, only page views that may carry a new traffic source are 
     const taxonPage = await page.locator('a[href*="/taxons/"]').first().getAttribute('href');
     expect(await visit(() => page.goto(`${taxonPage}?page=1&limit=9&sorting[price]=asc&criteria[search][value]=a`))).toBe(0);
 
-    // an ad click
+    // an ad click, still within the session
+    expect(await visit(() => page.goto(`${productPage}?gclid=abc`))).toBe(0);
+
+    // the same ad click after the session timed out
+    await endSession(page);
     expect(await visit(() => page.goto(`${productPage}?gclid=abc`))).toBe(1);
 
     expect((await state()).sources).toEqual([
