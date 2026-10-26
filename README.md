@@ -123,9 +123,9 @@ requirements).
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license
 [ico-github-actions]: https://github.com/Setono/sylius-conversion-attribution-plugin/workflows/build/badge.svg
 [ico-code-coverage]: https://codecov.io/gh/Setono/sylius-conversion-attribution-plugin/graph/badge.svg
-[ico-infection]: https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2FSetono%2Fsylius-conversion-attribution-plugin%2Fmaster
+[ico-infection]: https://img.shields.io/endpoint?style=flat&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2FSetono%2Fsylius-conversion-attribution-plugin%2F1.x
 
 [link-packagist]: https://packagist.org/packages/setono/sylius-conversion-attribution-plugin
 [link-github-actions]: https://github.com/Setono/sylius-conversion-attribution-plugin/actions
 [link-code-coverage]: https://codecov.io/gh/Setono/sylius-conversion-attribution-plugin
-[link-infection]: https://dashboard.stryker-mutator.io/reports/github.com/Setono/sylius-conversion-attribution-plugin/master
+[link-infection]: https://dashboard.stryker-mutator.io/reports/github.com/Setono/sylius-conversion-attribution-plugin/1.x
