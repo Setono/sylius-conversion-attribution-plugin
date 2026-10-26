@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Matcher;
 
-use Symfony\Component\HttpFoundation\Request;
-
 interface SourceMatcherInterface
 {
     /**
-     * Tries to match the request query to a source and returns a Source if it matches or null if it doesn't
+     * Tries to match the page view to a source and returns a Source if it matches or null if it doesn't
      */
-    public function match(Request $request): ?Source;
+    public function match(PageView $pageView): ?Source;
 }

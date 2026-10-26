@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Matcher;
 
-use Symfony\Component\HttpFoundation\Request;
-
 final class QueryParameterBasedSourceMatcher implements SourceMatcherInterface
 {
     public function __construct(
@@ -14,12 +12,12 @@ final class QueryParameterBasedSourceMatcher implements SourceMatcherInterface
     ) {
     }
 
-    public function match(Request $request): ?Source
+    public function match(PageView $pageView): ?Source
     {
         foreach ($this->parameters as $parameter) {
             foreach ($parameter['matches'] as $match) {
-                $source = $request->query->get($match);
-                if (!is_string($source) || '' === $source) {
+                $source = $pageView->getQueryParameter($match);
+                if (null === $source || '' === $source) {
                     continue;
                 }
 

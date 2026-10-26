@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Matcher;
 
 use PHPUnit\Framework\TestCase;
+use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
 use Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher;
-use Symfony\Component\HttpFoundation\Request;
 
 final class QueryParameterBasedSourceMatcherTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class QueryParameterBasedSourceMatcherTest extends TestCase
         $matcher = new QueryParameterBasedSourceMatcher([
             ['matches' => ['gclid'], 'source' => 'google', 'medium' => 'cpc', 'campaign' => 'Summer Sale'],
         ]);
-        $res = $matcher->match(new Request(['gclid' => '1234']));
+        $res = $matcher->match(new PageView('https://shop.example/?gclid=1234'));
 
         self::assertNotNull($res);
         self::assertSame('google', $res->source);
@@ -34,11 +34,28 @@ final class QueryParameterBasedSourceMatcherTest extends TestCase
         $matcher = new QueryParameterBasedSourceMatcher([
             ['matches' => ['source'], 'source' => null, 'medium' => null, 'campaign' => null],
         ]);
-        $res = $matcher->match(new Request(['source' => 'slashdot.org']));
+        $res = $matcher->match(new PageView('https://shop.example/?source=slashdot.org'));
 
         self::assertNotNull($res);
         self::assertSame('slashdot.org', $res->source);
         self::assertNull($res->medium);
         self::assertNull($res->campaign);
+    }
+
+    /**
+     * @test
+     */
+    public function it_skips_empty_and_non_string_values(): void
+    {
+        $matcher = new QueryParameterBasedSourceMatcher([
+            ['matches' => ['gclid', 'wbraid'], 'source' => 'google', 'medium' => 'cpc', 'campaign' => null],
+            ['matches' => ['fbclid'], 'source' => 'facebook', 'medium' => 'cpc', 'campaign' => null],
+        ]);
+
+        self::assertNull($matcher->match(new PageView('https://shop.example/?gclid=&wbraid[]=1')));
+
+        $res = $matcher->match(new PageView('https://shop.example/?gclid=&fbclid=abc'));
+        self::assertNotNull($res);
+        self::assertSame('facebook', $res->source);
     }
 }

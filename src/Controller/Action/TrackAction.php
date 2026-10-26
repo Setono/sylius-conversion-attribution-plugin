@@ -9,6 +9,7 @@ use Setono\BotDetectionBundle\BotDetector\BotDetectorInterface;
 use Setono\ClientBundle\Context\ClientContextInterface;
 use Setono\Doctrine\ORMTrait;
 use Setono\SyliusConversionAttributionPlugin\Factory\SourceFactoryInterface;
+use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
 use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -51,12 +52,7 @@ final class TrackAction
         $source->setUserAgent($request->headers->get('user-agent'));
         $source->setSource($this->defaultSource);
 
-        // The matchers inspect the query parameters, host and Referer header of the page view, so
-        // they get a synthetic request built from the posted page and referrer
-        $match = $this->sourceMatcher->match(Request::create(
-            $payload->page,
-            server: null === $referrer ? [] : ['HTTP_REFERER' => $referrer],
-        ));
+        $match = $this->sourceMatcher->match(new PageView($payload->page, $referrer));
 
         if (null !== $match) {
             $source->setSource($match->source);

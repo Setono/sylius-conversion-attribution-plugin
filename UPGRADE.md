@@ -42,6 +42,13 @@ If you redefine, decorate or extend these services, update the arguments:
   The subscriber adds a `ScriptTag` instead of an `InlineScriptTag`.
 - `SourceFactoryInterface::createFromClientInformation()` is removed; use `createNew()` and the setters.
 
+## Source matchers
+
+- `Matcher\SourceMatcherInterface::match()` takes a `Matcher\PageView` instead of a `Request`: the
+  visited page's `url`, its `referrer` and `host`, and `getQueryParameter()` (string values only, so a
+  crafted `?utm_source[]=x` no longer causes a 400). Matching happens when the tracking script reports a
+  page view, so there is no meaningful request to match on. Update your custom matchers accordingly.
+
 ## Removed classes
 
 - `ClientInformation\ClientInformation`, `Resolver\ClientInformationResolver` and

@@ -13,6 +13,7 @@ use Setono\ClientBundle\Context\ClientContextInterface;
 use Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackAction;
 use Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackPayload;
 use Setono\SyliusConversionAttributionPlugin\Factory\SourceFactoryInterface;
+use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
 use Setono\SyliusConversionAttributionPlugin\Matcher\Source as MatchedSource;
 use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\Source;
@@ -29,14 +30,9 @@ final class TrackActionTest extends TestCase
     {
         $matcher = $this->createMock(SourceMatcherInterface::class);
         $matcher->expects(self::once())->method('match')->willReturnCallback(
-            static function (Request $synthetic): MatchedSource {
-                // The matchers must see the posted page (host, path, query) and the posted referrer
-                self::assertSame('shop.example', $synthetic->getHost());
-                self::assertSame('/p', $synthetic->getPathInfo());
-                self::assertSame('google', $synthetic->query->get('utm_source'));
-                self::assertSame('cpc', $synthetic->query->get('utm_medium'));
-                self::assertSame('summer', $synthetic->query->get('utm_campaign'));
-                self::assertSame('https://google.com/', $synthetic->headers->get('referer'));
+            static function (PageView $pageView): MatchedSource {
+                self::assertSame('https://shop.example/p?utm_source=google&utm_medium=cpc&utm_campaign=summer', $pageView->url);
+                self::assertSame('https://google.com/', $pageView->referrer);
 
                 return new MatchedSource('google', 'cpc', 'summer');
             },
@@ -53,7 +49,6 @@ final class TrackActionTest extends TestCase
         self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
         self::assertInstanceOf(Source::class, $persisted);
         self::assertSame('client-from-cookie', $persisted->getClientId());
-        // As posted: Request::getUri() of the synthetic request would have sorted the query string
         self::assertSame('https://shop.example/p?utm_source=google&utm_medium=cpc&utm_campaign=summer', $persisted->getPage());
         self::assertSame('https://google.com/', $persisted->getReferrer());
         self::assertSame('203.0.113.9', $persisted->getIp());
@@ -84,8 +79,6 @@ final class TrackActionTest extends TestCase
      */
     public function it_stores_no_ip_or_user_agent_the_real_request_lacks(): void
     {
-        // Request::create()'s defaults for the synthetic request (127.0.0.1, "Symfony") must never
-        // leak into the database
         $request = $this->trackRequest();
         $request->server->remove('REMOTE_ADDR');
         $request->headers->remove('user-agent');
@@ -105,12 +98,12 @@ final class TrackActionTest extends TestCase
      *
      * @dataProvider emptyReferrers
      */
-    public function it_omits_the_referer_header_when_no_referrer_is_posted(?string $referrer): void
+    public function it_passes_no_referrer_to_the_matchers_when_none_is_posted(?string $referrer): void
     {
         $matcher = $this->createMock(SourceMatcherInterface::class);
         $matcher->expects(self::once())->method('match')->willReturnCallback(
-            static function (Request $synthetic): ?MatchedSource {
-                self::assertFalse($synthetic->headers->has('referer'));
+            static function (PageView $pageView): ?MatchedSource {
+                self::assertNull($pageView->referrer);
 
                 return null;
             },
