@@ -24,6 +24,8 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly Packages $packages,
         private readonly int $sessionTimeout,
+        /** @var list<string> $campaignParameters the query parameters that make the script skip its session throttle */
+        private readonly array $campaignParameters,
         // A hash of the script's contents, so browsers and CDNs fetch the new script after an upgrade
         private readonly string $scriptVersion,
     ) {
@@ -63,7 +65,8 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
             ScriptTag::create(htmlspecialchars($src))
                 ->defer()
                 ->withAttribute('data-endpoint', htmlspecialchars($this->urlGenerator->generate('setono_sylius_conversion_attribution_global_track')))
-                ->withAttribute('data-session-timeout', $this->sessionTimeout),
+                ->withAttribute('data-session-timeout', $this->sessionTimeout)
+                ->withAttribute('data-campaign-parameters', htmlspecialchars(implode(' ', $this->campaignParameters))),
         );
     }
 }

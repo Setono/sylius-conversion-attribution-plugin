@@ -8,13 +8,16 @@ const SESSION_TIMEOUT = 1800;
 /**
  * Runs the tracking script as if it was loaded by <script data-endpoint=... data-session-timeout=...>
  */
-function run({endpoint = '/track', sessionTimeout = String(SESSION_TIMEOUT)} = {}) {
+function run({endpoint = '/track', sessionTimeout = String(SESSION_TIMEOUT), campaignParameters = 'utm_source gclid fbclid'} = {}) {
     const script = document.createElement('script');
     if (endpoint !== null) {
         script.setAttribute('data-endpoint', endpoint);
     }
     if (sessionTimeout !== null) {
         script.setAttribute('data-session-timeout', sessionTimeout);
+    }
+    if (campaignParameters !== null) {
+        script.setAttribute('data-campaign-parameters', campaignParameters);
     }
 
     stub(document, 'currentScript', script);
@@ -116,13 +119,42 @@ describe('the session throttle', () => {
         expect(fetch).toHaveBeenCalledTimes(1);
     });
 
-    test('is bypassed by a query string, which may carry a new campaign', () => {
+    test.each([
+        ['a utm_source', '/?utm_source=newsletter&utm_medium=email'],
+        ['a click id', '/product?gclid=abc'],
+        ['a campaign parameter after others', '/?page=2&fbclid=abc'],
+    ])('is bypassed by %s, which may carry a new traffic source', (_, url) => {
         lastSeen(1);
-        visit('/?utm_source=newsletter');
+        visit(url);
 
         run();
 
-        expect(postedPayload()).toEqual({page: 'https://shop.example/?utm_source=newsletter'});
+        expect(postedPayload()).toEqual({page: 'https://shop.example' + url});
+    });
+
+    test.each([
+        ['pagination, sorting and search', '/taxons/t-shirts?page=2&sorting[price]=asc&criteria[search][value]=red'],
+        ['an empty campaign parameter', '/?gclid='],
+        ['a parameter that merely contains a campaign parameter name', '/?xgclid=abc&utm_source_x=y'],
+    ])('is not bypassed by %s', (_, url) => {
+        lastSeen(1);
+        visit(url);
+
+        run();
+
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        ['missing', null],
+        ['empty', ''],
+    ])('is not bypassed by any query parameter when the campaign parameters are %s', (_, campaignParameters) => {
+        lastSeen(1);
+        visit('/?utm_source=newsletter');
+
+        run({campaignParameters});
+
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     test('is bypassed by a cross-host referrer', () => {

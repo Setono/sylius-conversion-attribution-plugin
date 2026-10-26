@@ -9,6 +9,8 @@
  * Configured through attributes on its own <script> tag:
  * - data-endpoint: the URL to POST page views to
  * - data-session-timeout: seconds within which a returning visitor isn't tracked again
+ * - data-campaign-parameters: space separated query parameters (utm_source, gclid, ...) that may carry a
+ *   new traffic source, so a page view with one of them is tracked even within the session
  */
 (function () {
     'use strict';
@@ -32,12 +34,17 @@
     }
 
     var sessionTimeout = parseInt(script.getAttribute('data-session-timeout'), 10) * 1000;
+    var campaignParameters = (script.getAttribute('data-campaign-parameters') || '').split(' ');
 
     function hasCampaignHint() {
-        // A query string (utm_*, gclid, fbclid, ...) or a cross-host referrer may carry a new traffic
-        // source; the server side source matcher makes the definitive call
-        if (window.location.search !== '') {
-            return true;
+        // A campaign parameter or a cross-host referrer may carry a new traffic source; the server side
+        // source matchers make the definitive call. Other query strings (pagination, sorting, search, ...)
+        // can't, so they don't bypass the session throttle
+        var query = new URLSearchParams(window.location.search);
+        for (var i = 0; i < campaignParameters.length; i++) {
+            if (query.get(campaignParameters[i])) {
+                return true;
+            }
         }
 
         if (document.referrer === '') {

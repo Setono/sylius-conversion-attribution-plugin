@@ -23,7 +23,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
          *
          * @var array{
          *     javascript: array{enabled: bool},
-         *     query_parameters: array,
+         *     query_parameters: array<string, array{enabled?: bool, matches: list<string>, source: string|null, medium: string|null, campaign: string|null}>,
          *     session_timeout: int,
          *     resources: array
          * } $config
@@ -31,10 +31,12 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
-        $container->setParameter('setono_sylius_conversion_attribution.javascript.enabled', $config['javascript']['enabled']);
-        $container->setParameter('setono_sylius_conversion_attribution.query_parameters', array_filter($config['query_parameters'], static function (array $queryParameter): bool {
+        $queryParameters = array_filter($config['query_parameters'], static function (array $queryParameter): bool {
             return !array_key_exists('enabled', $queryParameter) || true === $queryParameter['enabled'];
-        }));
+        });
+
+        $container->setParameter('setono_sylius_conversion_attribution.javascript.enabled', $config['javascript']['enabled']);
+        $container->setParameter('setono_sylius_conversion_attribution.query_parameters', $queryParameters);
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
         $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
         $container->setParameter('setono_sylius_conversion_attribution.source.default', 'direct');
@@ -59,6 +61,15 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
             // of the page serving the old one until the cache is cleared
             $container->addResource(new FileResource($script));
             $container->setParameter('setono_sylius_conversion_attribution.javascript.version', substr($scriptHash, 0, 12));
+
+            // The query parameters a source matcher acts on (utm_source and the configured click ids). Only
+            // these make the tracking script skip its session throttle: other query strings (pagination,
+            // sorting, search, ...) can't carry a new traffic source
+            $campaignParameters = ['utm_source'];
+            foreach ($queryParameters as $queryParameter) {
+                array_push($campaignParameters, ...$queryParameter['matches']);
+            }
+            $container->setParameter('setono_sylius_conversion_attribution.javascript.campaign_parameters', array_values(array_unique($campaignParameters)));
 
             $loader->load('services/conditional/event_subscriber.xml');
         }

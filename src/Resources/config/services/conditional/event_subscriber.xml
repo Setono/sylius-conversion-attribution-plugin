@@ -7,6 +7,7 @@
             <argument type="service" id="router"/>
             <argument type="service" id="assets.packages"/>
             <argument>%setono_sylius_conversion_attribution.session_timeout%</argument>
+            <argument>%setono_sylius_conversion_attribution.javascript.campaign_parameters%</argument>
             <argument>%setono_sylius_conversion_attribution.javascript.version%</argument>
 
             <tag name="kernel.event_subscriber"/>

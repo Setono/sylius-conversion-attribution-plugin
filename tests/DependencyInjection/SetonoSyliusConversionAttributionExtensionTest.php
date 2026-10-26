@@ -36,6 +36,27 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
     /**
      * @test
      */
+    public function it_passes_the_query_parameters_the_matchers_act_on_to_the_script(): void
+    {
+        $this->setParameter('kernel.bundles', ['SetonoTagBagBundle' => true]);
+
+        $this->load([
+            'query_parameters' => [
+                'google' => ['matches' => ['gclid', 'gbraid'], 'source' => 'google', 'medium' => 'cpc'],
+                'generic' => ['matches' => ['source', 'gclid']],
+                'disabled' => ['enabled' => false, 'matches' => ['disabled_click_id']],
+            ],
+        ]);
+
+        $this->assertContainerBuilderHasParameter(
+            'setono_sylius_conversion_attribution.javascript.campaign_parameters',
+            ['utm_source', 'gclid', 'gbraid', 'source'],
+        );
+    }
+
+    /**
+     * @test
+     */
     public function it_does_not_load_event_subscriber_if_javascript_is_disabled(): void
     {
         $this->setParameter('kernel.bundles', ['SetonoTagBagBundle' => true]);

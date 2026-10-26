@@ -38,7 +38,7 @@ final class AddJavascriptSubscriberTest extends TestCase
         self::assertCount(1, $tags);
         self::assertInstanceOf(ScriptTag::class, $tags[0]);
         self::assertSame(
-            '<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" defer data-endpoint="/track" data-session-timeout="1800"></script>',
+            '<script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" defer data-endpoint="/track" data-session-timeout="1800" data-campaign-parameters="utm_source gclid"></script>',
             (new ElementRenderer())->render($tags[0]),
         );
     }
@@ -99,12 +99,13 @@ final class AddJavascriptSubscriberTest extends TestCase
             $this->capturingTagBag($tags),
             trackUrl: '/track"><script>alert(1)</script>',
             basePath: '/shop"onload="x',
+            campaignParameters: ['utm_source', 'x"onload="y'],
         );
         $subscriber->addJavascript($this->createRequestEvent());
 
         self::assertInstanceOf(ScriptTag::class, $tags[0]);
         self::assertSame(
-            '<script src="/shop&quot;onload=&quot;x/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" defer data-endpoint="/track&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" data-session-timeout="1800"></script>',
+            '<script src="/shop&quot;onload=&quot;x/bundles/setonosyliusconversionattributionplugin/js/track.js?v=abc123" defer data-endpoint="/track&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;" data-session-timeout="1800" data-campaign-parameters="utm_source x&quot;onload=&quot;y"></script>',
             (new ElementRenderer())->render($tags[0]),
         );
     }
@@ -149,11 +150,15 @@ final class AddJavascriptSubscriberTest extends TestCase
         return $tagBag;
     }
 
+    /**
+     * @param list<string> $campaignParameters
+     */
     private function createSubscriber(
         TagBagInterface $tagBag,
         string $trackUrl = '/track',
         string $basePath = '',
         VersionStrategyInterface $versionStrategy = new EmptyVersionStrategy(),
+        array $campaignParameters = ['utm_source', 'gclid'],
     ): AddJavascriptSubscriber {
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator->method('generate')->with('setono_sylius_conversion_attribution_global_track')->willReturn($trackUrl);
@@ -163,6 +168,7 @@ final class AddJavascriptSubscriberTest extends TestCase
             $urlGenerator,
             new Packages(new PathPackage($basePath, $versionStrategy)),
             1800,
+            $campaignParameters,
             'abc123',
         );
     }

@@ -114,15 +114,17 @@ On every HTML page the plugin adds this tag (through the tag bag):
 
 ```html
 <script src="/bundles/setonosyliusconversionattributionplugin/js/track.js?v=…" defer
-        data-endpoint="/track" data-session-timeout="1800"></script>
+        data-endpoint="/track" data-session-timeout="1800" data-campaign-parameters="utm_source gclid fbclid …"></script>
 ```
 
 The script POSTs the page URL and the referrer to `/track`, where everything else is resolved server
 side: the client id from the `setono_client_id` cookie riding on the request, and the traffic source
 (utm parameters, click ids such as `gclid`/`fbclid`, the referrer) by the source matchers. To keep
 the `source` table small, a visitor isn't tracked again within `session_timeout` seconds (a rolling
-`localStorage` timestamp), unless the URL has a query string or the referrer is another site, since
-both may carry a new traffic source. Prerendered pages are tracked when they are shown, not before.
+`localStorage` timestamp), unless the URL has a campaign parameter (`utm_source` or one of the
+click ids configured under `query_parameters`, such as `gclid` and `fbclid`) or the referrer is another
+site, since both may carry a new traffic source. Other query strings (pagination, sorting, search) don't
+skip the throttle. Prerendered pages are tracked when they are shown, not before.
 
 ### Optional runtime dependencies
 
