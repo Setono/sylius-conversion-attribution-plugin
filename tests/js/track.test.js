@@ -69,7 +69,7 @@ describe('a page view', () => {
             method: 'POST',
             credentials: 'same-origin',
             keepalive: true,
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
             body: JSON.stringify({page: 'https://shop.example/product/t-shirt', referrer: 'https://google.com/search'}),
         });
     });
@@ -149,6 +149,15 @@ describe('the session throttle', () => {
         run({sessionTimeout});
 
         expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('starts a new session when the stored timestamp is unreadable', () => {
+        window.localStorage.setItem(STORAGE_KEY, 'not a timestamp');
+
+        run();
+
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(window.localStorage.getItem(STORAGE_KEY)).toBe(String(NOW));
     });
 
     test('tracks every page view when storage is unavailable', () => {

@@ -37,21 +37,26 @@
 
     function track() {
         var now = Date.now();
-        var last = NaN;
+        var lastSeen = NaN;
 
         // A rolling "last seen" timestamp: every page view extends the session
         try {
-            last = parseInt(window.localStorage.getItem(STORAGE_KEY), 10);
+            lastSeen = parseInt(window.localStorage.getItem(STORAGE_KEY), 10);
             window.localStorage.setItem(STORAGE_KEY, String(now));
         } catch (e) {
-            // storage unavailable (disabled, sandboxed iframe, ...): track every page view
+            // storage unavailable (disabled, sandboxed iframe, ...): every page view starts a session
         }
+
+        // A missing or unreadable timestamp (first visit, unavailable storage) or session timeout means a
+        // new session. parseInt() returns NaN for those, so check it explicitly instead of relying on any
+        // comparison with NaN being false
+        var withinSession = !isNaN(lastSeen) && !isNaN(sessionTimeout) && now - lastSeen < sessionTimeout;
 
         // Only the first page view of a session is tracked, with its URL and referrer: that's where the
         // visitor came from. Later ones within the session aren't, not even with a query string or a
         // referrer from another site. That keeps the source table small, and a customer returning from a
         // payment gateway (PayPal, Stripe, ...) is never stored as a referral
-        if (now - last < sessionTimeout) {
+        if (withinSession) {
             return;
         }
 
@@ -64,7 +69,12 @@
             method: 'POST',
             credentials: 'same-origin',
             keepalive: true,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                // Marks it as a background request for Symfony's Request::isXmlHttpRequest(), so the
+                // shop's listeners that skip AJAX requests (tag injection, page view recording, ...) skip it
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             body: JSON.stringify(payload)
         }).catch(function () {
             // offline or blocked: nothing to do, and no unhandled rejection in the console
