@@ -26,7 +26,7 @@
         "watch": "encore dev --watch",
         "test": "jest",
         "e2e": "playwright test",
-        "build:tracking-script": "terser ../../src/Resources/private/js/track.js --compress --mangle --comments some --output ../../src/Resources/public/js/track.js"
+        "build:tracking-script": "terser ../../src/Resources/private/js/track.js --compress --mangle --comments false --output ../../src/Resources/public/js/track.js"
     },
     "repository": {
         "type": "git",

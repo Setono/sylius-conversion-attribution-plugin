@@ -7,7 +7,7 @@ const SCRIPTS = [
     ['built', path.resolve(__dirname, '../../src/Resources/public/js/track.js')],
 ];
 let SCRIPT;
-const STORAGE_KEY = 'setono_conversion_attribution_last_seen';
+const STORAGE_KEY = 'ssca_last_seen';
 const NOW = 1_700_000_000_000;
 const SESSION_TIMEOUT = 1800;
 

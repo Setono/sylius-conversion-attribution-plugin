@@ -1,5 +1,3 @@
-/*! setono/sylius-conversion-attribution-plugin tracking script. Minified into src/Resources/public/js/track.js by `yarn build:tracking-script` (in tests/Application): edit src/Resources/private/js/track.js, not the minified file */
-
 /*
  * Tracking script of setono/sylius-conversion-attribution-plugin.
  *
@@ -15,7 +13,7 @@
 (function () {
     'use strict';
 
-    var STORAGE_KEY = 'setono_conversion_attribution_last_seen';
+    var STORAGE_KEY = 'ssca_last_seen';
 
     // document.currentScript is null when a script optimizer (e.g. Cloudflare Rocket Loader) runs the
     // script, so fall back to the tag's id, like Fathom, Simple Analytics and Cloudflare's own tracker do
