@@ -48,6 +48,13 @@ If you redefine, decorate or extend these services, update the arguments:
   visited page's `url`, its `referrer` and `host`, and `getQueryParameter()` (string values only, so a
   crafted `?utm_source[]=x` no longer causes a 400). Matching happens when the tracking script reports a
   page view, so there is no meaningful request to match on. Update your custom matchers accordingly.
+- `Matcher\PageView` normalizes what the browser reported: `getQueryParameter()` returns values trimmed
+  and `null` for a blank one, `referrer` is trimmed and `null` when blank, and the new `referrerHost`
+  holds the referrer's host in lower case. Custom matchers no longer need to check for `''`.
+- `Matcher\Source` trims its values, turns a blank medium or campaign into `null`, and throws an
+  `InvalidArgumentException` for a blank source. A matcher that can't name the source must return `null`.
+  A link with a blank `utm_source` (e.g. `?utm_source=&utm_medium=cpc`) is no longer stored with an empty
+  source; the referrer decides the source instead, as when `utm_source` is missing.
 
 ## Removed classes
 

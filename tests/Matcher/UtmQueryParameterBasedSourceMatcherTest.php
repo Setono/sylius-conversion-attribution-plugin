@@ -35,6 +35,16 @@ final class UtmQueryParameterBasedSourceMatcherTest extends TestCase
     /**
      * @test
      */
+    public function it_does_not_match_a_blank_utm_source(): void
+    {
+        // A link built from a template with an empty placeholder must leave the page view to the
+        // referrer matcher instead of crediting a source without a name
+        self::assertNull((new UtmQueryParameterBasedSourceMatcher())->match(new PageView('https://shop.example/?utm_source=&utm_medium=cpc', 'https://www.google.com/')));
+    }
+
+    /**
+     * @test
+     */
     public function it_matches_without_medium_and_campaign(): void
     {
         $res = (new UtmQueryParameterBasedSourceMatcher())->match(new PageView('https://shop.example/?utm_source=newsletter'));

@@ -96,7 +96,7 @@ final class TrackActionTest extends TestCase
     /**
      * @test
      *
-     * @dataProvider emptyReferrers
+     * @dataProvider blankReferrers
      */
     public function it_passes_no_referrer_to_the_matchers_when_none_is_posted(?string $referrer): void
     {
@@ -121,10 +121,11 @@ final class TrackActionTest extends TestCase
     /**
      * @return iterable<string, array{?string}>
      */
-    public static function emptyReferrers(): iterable
+    public static function blankReferrers(): iterable
     {
         yield 'missing' => [null];
         yield 'empty' => [''];
+        yield 'whitespace' => [' '];
     }
 
     /**

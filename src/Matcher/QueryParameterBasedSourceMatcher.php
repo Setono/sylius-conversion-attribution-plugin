@@ -17,7 +17,7 @@ final class QueryParameterBasedSourceMatcher implements SourceMatcherInterface
         foreach ($this->parameters as $parameter) {
             foreach ($parameter['matches'] as $match) {
                 $source = $pageView->getQueryParameter($match);
-                if (null === $source || '' === $source) {
+                if (null === $source) {
                     continue;
                 }
 
