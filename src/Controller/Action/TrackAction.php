@@ -40,19 +40,21 @@ final class TrackAction
             return new Response(status: Response::HTTP_NO_CONTENT);
         }
 
-        $referrer = null === $payload->referrer || '' === $payload->referrer ? null : $payload->referrer;
+        // The page view normalizes what the browser posted (e.g. a blank referrer is none), so the
+        // entity stores the referrer the matchers saw
+        $pageView = new PageView($payload->page, $payload->referrer);
 
         // The tracking script is static (full page cache safe), so everything per-visitor is resolved
         // here. ClientContext reads the client id from the setono_client_id cookie on this (POST) request
         $source = $this->sourceFactory->createNew();
         $source->setClientId($this->clientContext->getClient()->id);
         $source->setPage($payload->page);
-        $source->setReferrer($referrer);
+        $source->setReferrer($pageView->referrer);
         $source->setIp($request->getClientIp());
         $source->setUserAgent($request->headers->get('user-agent'));
         $source->setSource($this->defaultSource);
 
-        $match = $this->sourceMatcher->match(new PageView($payload->page, $referrer));
+        $match = $this->sourceMatcher->match($pageView);
 
         if (null !== $match) {
             $source->setSource($match->source);

@@ -217,7 +217,8 @@ final class NewsletterSourceMatcher implements SourceMatcherInterface
 {
     public function match(PageView $pageView): ?Source
     {
-        // $pageView->url, $pageView->referrer and $pageView->host are available too
+        // $pageView->url, $pageView->referrer, $pageView->host and $pageView->referrerHost are available
+        // too. Values come trimmed, and a blank query parameter or referrer is null
         $issue = $pageView->getQueryParameter('newsletter');
         if (null === $issue) {
             return null;

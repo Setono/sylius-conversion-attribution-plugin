@@ -18,7 +18,7 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
     public function match(PageView $pageView): ?Source
     {
         $referrer = $pageView->referrer;
-        if (null === $referrer || '' === $referrer) {
+        if (null === $referrer) {
             return null;
         }
 
@@ -27,12 +27,8 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
             return new Source($parsedReferrer->source, $parsedReferrer->medium);
         }
 
-        $host = parse_url($referrer, \PHP_URL_HOST);
-        if (!is_string($host) || '' === $host) {
-            return null;
-        }
-
-        if ($pageView->host === $host) {
+        $host = $pageView->referrerHost;
+        if (null === $host || $pageView->host === $host) {
             return null;
         }
 

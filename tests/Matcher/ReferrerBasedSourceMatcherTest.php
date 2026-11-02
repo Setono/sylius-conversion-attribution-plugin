@@ -66,11 +66,21 @@ final class ReferrerBasedSourceMatcherTest extends TestCase
 
     /**
      * @test
+     *
+     * @dataProvider sameHostPageViews
      */
-    public function it_does_not_match_a_referrer_from_the_same_host(): void
+    public function it_does_not_match_a_referrer_from_the_same_host(PageView $pageView): void
     {
-        self::assertNull($this->matcher(new Referrer(Referrer::MEDIUM_UNKNOWN))
-            ->match(new PageView('https://SHOP.example/cart', 'https://shop.example/product')));
+        self::assertNull($this->matcher(new Referrer(Referrer::MEDIUM_UNKNOWN))->match($pageView));
+    }
+
+    /**
+     * @return iterable<string, array{PageView}>
+     */
+    public static function sameHostPageViews(): iterable
+    {
+        yield 'page host in upper case' => [new PageView('https://SHOP.example/cart', 'https://shop.example/product')];
+        yield 'referrer host in upper case' => [new PageView('https://shop.example/cart', 'https://SHOP.example/product')];
     }
 
     /**
@@ -90,7 +100,6 @@ final class ReferrerBasedSourceMatcherTest extends TestCase
     public static function unusableReferrers(): iterable
     {
         yield 'none' => [null];
-        yield 'empty' => [''];
         yield 'without host' => ['not a url'];
     }
 

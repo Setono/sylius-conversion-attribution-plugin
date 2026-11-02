@@ -39,6 +39,68 @@ final class PageViewTest extends TestCase
 
     /**
      * @test
+     */
+    public function it_trims_query_parameters_and_treats_blank_ones_as_missing(): void
+    {
+        $pageView = new PageView('https://shop.example/?utm_source=&utm_medium=%20%20&utm_campaign=%20Summer%20Sale%20');
+
+        self::assertNull($pageView->getQueryParameter('utm_source'));
+        self::assertNull($pageView->getQueryParameter('utm_medium'));
+        self::assertSame('Summer Sale', $pageView->getQueryParameter('utm_campaign'));
+    }
+
+    /**
+     * @test
+     *
+     * @dataProvider blankReferrers
+     */
+    public function it_treats_a_blank_referrer_as_none(string $referrer): void
+    {
+        self::assertNull((new PageView('https://shop.example/', $referrer))->referrer);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function blankReferrers(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'whitespace' => [' '];
+    }
+
+    /**
+     * @test
+     */
+    public function it_trims_the_referrer(): void
+    {
+        self::assertSame('https://www.google.com/', (new PageView('https://shop.example/', " https://www.google.com/\n"))->referrer);
+    }
+
+    /**
+     * @test
+     *
+     * @dataProvider referrerHosts
+     */
+    public function it_exposes_the_referrer_host_lowercased(?string $referrer, ?string $expectedHost): void
+    {
+        self::assertSame($expectedHost, (new PageView('https://shop.example/', $referrer))->referrerHost);
+    }
+
+    /**
+     * @return iterable<string, array{?string, ?string}>
+     */
+    public static function referrerHosts(): iterable
+    {
+        yield 'web' => ['https://WWW.Google.com/search?q=shoes', 'www.google.com'];
+        // The Gmail app; analytics tools report it as a referral from com.google.android.gm too
+        yield 'app' => ['android-app://com.google.android.gm', 'com.google.android.gm'];
+        yield 'none' => [null, null];
+        yield 'blank' => [' ', null];
+        yield 'without host' => ['not a url', null];
+    }
+
+    /**
+     * @test
      *
      * @dataProvider urlsWithoutHostOrQuery
      */
