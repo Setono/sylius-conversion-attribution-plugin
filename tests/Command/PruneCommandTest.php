@@ -7,11 +7,15 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Command;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
+use Doctrine\ORM\Mapping\Driver\SimplifiedXmlDriver;
 use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Command\PruneCommand;
+use Setono\SyliusConversionAttributionPlugin\Model\Source;
 use Setono\SyliusConversionAttributionPlugin\Tests\Command\Fixture\PrunableSource;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
@@ -23,7 +27,14 @@ final class PruneCommandTest extends TestCase
 
     protected function setUp(): void
     {
-        $config = ORMSetup::createAttributeMetadataConfiguration([__DIR__ . '/Fixture'], true);
+        // The plugin's own XML mapping maps the Source model, and the fixture's attributes make it an entity
+        $modelNamespace = (new \ReflectionClass(Source::class))->getNamespaceName();
+        $driver = new MappingDriverChain();
+        $driver->addDriver(new SimplifiedXmlDriver([dirname(__DIR__, 2) . '/src/Resources/config/doctrine/model' => $modelNamespace], '.orm.xml', true), $modelNamespace);
+        $driver->addDriver(new AttributeDriver([__DIR__ . '/Fixture']), (new \ReflectionClass(PrunableSource::class))->getNamespaceName());
+
+        $config = ORMSetup::createConfiguration(true);
+        $config->setMetadataDriverImpl($driver);
         $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config);
 
         // The public constructor works in both doctrine/orm 2.x and 3.x; the 2.x EntityManager::create()
@@ -137,8 +148,6 @@ final class PruneCommandTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($this->em);
 
-        // PrunableSource is a deliberately minimal stand-in (only id + createdAt) for a real source entity
-        /** @psalm-suppress InvalidArgument */
         $command = null === $daysToKeep
             ? new PruneCommand($registry, PrunableSource::class)
             : new PruneCommand($registry, PrunableSource::class, $daysToKeep);

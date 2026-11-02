@@ -38,6 +38,11 @@ final class ConfigurationTest extends TestCase
         ], $config['query_parameters']);
     }
 
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @return array<mixed>
+     */
     private function process(array $config): array
     {
         return (new Processor())->processConfiguration(new Configuration(), [$config]);

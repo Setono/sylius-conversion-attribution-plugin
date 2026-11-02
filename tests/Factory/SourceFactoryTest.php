@@ -7,6 +7,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Factory;
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Factory\SourceFactory;
 use Setono\SyliusConversionAttributionPlugin\Model\Source;
+use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 
 final class SourceFactoryTest extends TestCase
@@ -31,6 +32,9 @@ final class SourceFactoryTest extends TestCase
         (new SourceFactory($this->decoratedFactory(new \stdClass())))->createNew();
     }
 
+    /**
+     * @return FactoryInterface<SourceInterface>
+     */
     private function decoratedFactory(object $created): FactoryInterface
     {
         $factory = $this->createMock(FactoryInterface::class);

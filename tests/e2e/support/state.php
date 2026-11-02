@@ -11,7 +11,10 @@ use Setono\SyliusConversionAttributionPlugin\Tests\Application\Kernel;
 
 require dirname(__DIR__, 2) . '/Application/config/bootstrap.php';
 
-$kernel = new Kernel($_SERVER['APP_ENV'] ?? 'prod', (bool) ($_SERVER['APP_DEBUG'] ?? false));
+$environment = $_SERVER['APP_ENV'] ?? 'prod';
+assert(is_string($environment));
+
+$kernel = new Kernel($environment, (bool) ($_SERVER['APP_DEBUG'] ?? false));
 $kernel->boot();
 $container = $kernel->getContainer();
 

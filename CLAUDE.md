@@ -9,7 +9,7 @@ A Sylius plugin (`setono/sylius-conversion-attribution-plugin`) that attributes 
 ## Commands
 
 ```bash
-composer analyse           # Psalm static analysis (config: psalm.xml)
+composer analyse           # PHPStan static analysis at level max (config: phpstan.neon)
 composer check-style       # ECS check (config: ecs.php)
 composer fix-style         # ECS auto-fix
 composer phpunit           # Run all tests

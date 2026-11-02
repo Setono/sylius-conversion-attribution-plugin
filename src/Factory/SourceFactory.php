@@ -10,6 +10,9 @@ use Webmozart\Assert\Assert;
 
 final class SourceFactory implements SourceFactoryInterface
 {
+    /**
+     * @param FactoryInterface<SourceInterface> $decorated
+     */
     public function __construct(
         private readonly FactoryInterface $decorated,
     ) {
@@ -17,8 +20,9 @@ final class SourceFactory implements SourceFactoryInterface
 
     public function createNew(): SourceInterface
     {
-        /** @var SourceInterface|object $obj */
         $obj = $this->decorated->createNew();
+
+        // The decorated factory creates the configured model class, so make sure it is a source
         Assert::isInstanceOf($obj, SourceInterface::class);
 
         return $obj;

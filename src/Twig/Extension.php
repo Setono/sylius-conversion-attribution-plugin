@@ -14,7 +14,6 @@ final class Extension extends AbstractExtension
      */
     public function getFunctions(): array
     {
-        /** @psalm-suppress InvalidArgument */
         return [
             new TwigFunction('setono_sylius_conversion_attribution_last_non_direct', [Runtime::class, 'getLastNonDirect']),
         ];

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Model;
 
 use PHPUnit\Framework\TestCase;
-use Setono\SyliusConversionAttributionPlugin\Tests\Application\Model\Order;
+use Setono\SyliusConversionAttributionPlugin\Tests\Model\Fixture\Order;
 
 final class OrderTraitTest extends TestCase
 {

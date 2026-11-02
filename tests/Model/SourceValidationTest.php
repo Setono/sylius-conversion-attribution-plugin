@@ -6,6 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Model;
 
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Model\Source;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validation;
 
 /**
@@ -19,28 +20,28 @@ final class SourceValidationTest extends TestCase
      *
      * @dataProvider stringColumns
      */
-    public function it_rejects_a_value_longer_than_its_string_column(string $setter): void
+    public function it_rejects_a_value_longer_than_its_string_column(\Closure $set): void
     {
         $source = new Source();
-        $source->{$setter}(str_repeat('a', 256));
+        $set($source, str_repeat('a', 256));
 
         self::assertCount(1, $this->validate($source));
 
-        $source->{$setter}(str_repeat('a', 255));
+        $set($source, str_repeat('a', 255));
 
         self::assertCount(0, $this->validate($source));
     }
 
     /**
-     * @return iterable<string, array{string}>
+     * @return iterable<string, array{\Closure(Source, string): void}>
      */
     public static function stringColumns(): iterable
     {
-        yield 'client id' => ['setClientId'];
-        yield 'ip' => ['setIp'];
-        yield 'source' => ['setSource'];
-        yield 'medium' => ['setMedium'];
-        yield 'campaign' => ['setCampaign'];
+        yield 'client id' => [static fn (Source $source, string $value) => $source->setClientId($value)];
+        yield 'ip' => [static fn (Source $source, string $value) => $source->setIp($value)];
+        yield 'source' => [static fn (Source $source, string $value) => $source->setSource($value)];
+        yield 'medium' => [static fn (Source $source, string $value) => $source->setMedium($value)];
+        yield 'campaign' => [static fn (Source $source, string $value) => $source->setCampaign($value)];
     }
 
     /**
@@ -56,7 +57,7 @@ final class SourceValidationTest extends TestCase
         self::assertCount(0, $this->validate($source));
     }
 
-    private function validate(Source $source): iterable
+    private function validate(Source $source): ConstraintViolationListInterface
     {
         return Validation::createValidatorBuilder()
             ->addXmlMapping(__DIR__ . '/../../src/Resources/config/validation/Source.xml')
