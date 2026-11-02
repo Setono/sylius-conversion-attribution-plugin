@@ -17,7 +17,7 @@ use Webmozart\Assert\Assert;
 
 #[AsCommand(
     name: 'setono:sylius-conversion-attribution:prune',
-    description: 'Prunes old conversion attribution sources',
+    description: 'Deletes tracked page views older than the lookback window',
 )]
 final class PruneCommand extends Command
 {
@@ -27,11 +27,12 @@ final class PruneCommand extends Command
         ManagerRegistry $managerRegistry,
         /** @var class-string<SourceInterface> $sourceClass */
         private readonly string $sourceClass,
-        private readonly int $daysToKeep = 180,
+        // In days: a page view older than this can't be credited for an order anymore
+        private readonly int $lookbackWindow,
     ) {
         parent::__construct();
 
-        Assert::greaterThanEq($this->daysToKeep, 0);
+        Assert::greaterThanEq($this->lookbackWindow, 1);
 
         $this->managerRegistry = $managerRegistry;
     }
@@ -39,11 +40,11 @@ final class PruneCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $io->title('Pruning old conversion attribution sources');
+        $io->title('Pruning page views older than the lookback window');
 
         $total = (int) $this->getDeletableQueryBuilder()->select('COUNT(o)')->getQuery()->getSingleScalarResult();
         if ($total === 0) {
-            $io->success('No sources to prune');
+            $io->success('No page views to prune');
 
             return 0;
         }
@@ -97,7 +98,7 @@ final class PruneCommand extends Command
             ->getRepository($this->sourceClass)
             ->createQueryBuilder('o')
             ->andWhere('o.createdAt < :date')
-            ->setParameter('date', new \DateTimeImmutable(sprintf('-%d days', $this->daysToKeep)))
+            ->setParameter('date', new \DateTimeImmutable(sprintf('-%d days', $this->lookbackWindow)))
         ;
     }
 }

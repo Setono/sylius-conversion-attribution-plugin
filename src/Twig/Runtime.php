@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Twig;
 
-use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
-use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
-use Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProviderInterface;
-use Sylius\Component\Core\Model\OrderInterface as BaseOrderInterface;
+use Doctrine\Persistence\ManagerRegistry;
+use Setono\Doctrine\ORMTrait;
+use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Twig\Extension\RuntimeExtensionInterface;
 
 final class Runtime implements RuntimeExtensionInterface
 {
-    public function __construct(private readonly OrderAttributionProviderInterface $orderAttributionProvider)
-    {
+    use ORMTrait;
+
+    public function __construct(
+        ManagerRegistry $managerRegistry,
+        /** @var class-string<AttributionInterface> $attributionClass */
+        private readonly string $attributionClass,
+    ) {
+        $this->managerRegistry = $managerRegistry;
     }
 
-    public function getLastNonDirect(BaseOrderInterface $order): ?SourceInterface
+    public function getAttribution(OrderInterface $order): ?AttributionInterface
     {
-        if (!$order instanceof OrderInterface) {
-            return null;
-        }
-
-        return $this->orderAttributionProvider->getSource($order);
+        return $this->getRepository($this->attributionClass)->findOneBy(['order' => $order]);
     }
 }

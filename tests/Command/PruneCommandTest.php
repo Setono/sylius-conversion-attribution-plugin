@@ -4,76 +4,71 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Command;
 
-use Doctrine\DBAL\DriverManager;
-use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\Driver\AttributeDriver;
-use Doctrine\ORM\Mapping\Driver\SimplifiedXmlDriver;
-use Doctrine\ORM\ORMSetup;
-use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
-use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Command\PruneCommand;
-use Setono\SyliusConversionAttributionPlugin\Model\Source;
-use Setono\SyliusConversionAttributionPlugin\Tests\Command\Fixture\PrunableSource;
-use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Command\Command;
+use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-final class PruneCommandTest extends TestCase
+/**
+ * Runs against the test application with its default lookback window of 30 days
+ */
+final class PruneCommandTest extends KernelTestCase
 {
-    private EntityManagerInterface $em;
+    use PageViewsAndOrders;
 
-    protected function setUp(): void
+    /**
+     * @test
+     */
+    public function it_prunes_page_views_older_than_the_lookback_window(): void
     {
-        // The plugin's own XML mapping maps the Source model, and the fixture's attributes make it an entity
-        $modelNamespace = (new \ReflectionClass(Source::class))->getNamespaceName();
-        $driver = new MappingDriverChain();
-        $driver->addDriver(new SimplifiedXmlDriver([dirname(__DIR__, 2) . '/src/Resources/config/doctrine/model' => $modelNamespace], '.orm.xml', true), $modelNamespace);
-        $driver->addDriver(new AttributeDriver([__DIR__ . '/Fixture']), (new \ReflectionClass(PrunableSource::class))->getNamespaceName());
+        self::trackPageView('client', 'google', new \DateTimeImmutable('-31 days'));
+        $recent = self::trackPageView('client', 'facebook', new \DateTimeImmutable('-10 days'));
 
-        $config = ORMSetup::createConfiguration(true);
-        $config->setMetadataDriverImpl($driver);
-        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config);
+        $tester = $this->execute();
 
-        // The public constructor works in both doctrine/orm 2.x and 3.x; the 2.x EntityManager::create()
-        // factory was removed in 3.x, so it is deliberately avoided here
-        $this->em = new EntityManager($connection, $config);
-
-        $schemaTool = new SchemaTool($this->em);
-        $schemaTool->createSchema([$this->em->getClassMetadata(PrunableSource::class)]);
+        $tester->assertCommandIsSuccessful();
+        self::assertStringContainsString('Pruning page views older than the lookback window', $tester->getDisplay());
+        // the progress bar is finished, followed by a blank line
+        self::assertMatchesRegularExpression('# 1/1 \[.+\] 100%\n\n$#u', $tester->getDisplay());
+        self::assertSame([$recent->getId()], $this->remainingIds());
     }
 
     /**
      * @test
      */
-    public function it_prunes_only_rows_older_than_the_retention_window(): void
+    public function it_keeps_page_views_for_exactly_the_lookback_window(): void
     {
-        $old = new PrunableSource(new \DateTimeImmutable('-200 days'));
-        $recent = new PrunableSource(new \DateTimeImmutable('-10 days'));
-        $this->em->persist($old);
-        $this->em->persist($recent);
-        $this->em->flush();
-        $recentId = $recent->getId();
-        $this->em->clear();
+        $kept = self::trackPageView('client', 'google', new \DateTimeImmutable('-29 days -12 hours'));
+        self::trackPageView('client', 'facebook', new \DateTimeImmutable('-30 days -12 hours'));
 
-        $tester = new CommandTester($this->createCommand(180));
-        $tester->execute([]);
+        $this->execute()->assertCommandIsSuccessful();
+
+        self::assertSame([$kept->getId()], $this->remainingIds());
+    }
+
+    /**
+     * @test
+     */
+    public function it_prunes_in_batches(): void
+    {
+        $pageView = self::trackPageView('client', 'google', new \DateTimeImmutable('-31 days'));
+        // Copies of that page view, so there are more than a batch (1000) to prune
+        $table = self::entityManager()->getClassMetadata($pageView::class)->getTableName();
+        $connection = self::entityManager()->getConnection();
+        for ($i = 0; $i < 1000; ++$i) {
+            $connection->executeStatement(sprintf('INSERT INTO %1$s (client_id, source, created_at) SELECT client_id, source, created_at FROM %1$s WHERE id = ?', $table), [$pageView->getId()]);
+        }
+
+        $tester = $this->execute();
 
         $tester->assertCommandIsSuccessful();
-        self::assertStringContainsString('Pruning old conversion attribution sources', $tester->getDisplay());
-        // the progress bar is finished, followed by a blank line
-        self::assertMatchesRegularExpression('# 1/1 \[.+\] 100%\n\n$#u', $tester->getDisplay());
-
-        // The command terminates (the pre-fix loop bound to getScalarResult()'s row shape never did)
-        // and leaves exactly the recent row behind
-        $remaining = $this->em->getRepository(PrunableSource::class)->findAll();
-        self::assertCount(1, $remaining);
-
-        $survivor = reset($remaining);
-        self::assertInstanceOf(PrunableSource::class, $survivor);
-        self::assertSame($recentId, $survivor->getId());
+        self::assertSame([], $this->remainingIds());
+        self::assertMatchesRegularExpression('# 1001/1001 \[.+\] 100%#u', $tester->getDisplay());
     }
 
     /**
@@ -81,82 +76,79 @@ final class PruneCommandTest extends TestCase
      */
     public function it_reports_success_when_there_is_nothing_to_prune(): void
     {
-        $this->em->persist(new PrunableSource(new \DateTimeImmutable('-1 day')));
-        $this->em->flush();
-        $this->em->clear();
+        $recent = self::trackPageView('client', 'google', new \DateTimeImmutable('-1 day'));
 
-        $tester = new CommandTester($this->createCommand(180));
-        $tester->execute([]);
+        $tester = $this->execute();
 
         $tester->assertCommandIsSuccessful();
-        self::assertCount(1, $this->em->getRepository(PrunableSource::class)->findAll());
-        self::assertStringContainsString('Pruning old conversion attribution sources', $tester->getDisplay());
-        self::assertStringContainsString('[OK] No sources to prune', $tester->getDisplay());
+        self::assertSame([$recent->getId()], $this->remainingIds());
+        self::assertStringContainsString('[OK] No page views to prune', $tester->getDisplay());
     }
 
     /**
      * @test
      */
-    public function it_keeps_180_days_by_default(): void
+    public function it_accepts_a_lookback_window_of_a_day(): void
     {
-        $kept = new PrunableSource(new \DateTimeImmutable('-179 days -12 hours'));
-        $this->em->persist($kept);
-        $this->em->persist(new PrunableSource(new \DateTimeImmutable('-180 days -12 hours')));
-        $this->em->flush();
-        $keptId = $kept->getId();
-        $this->em->clear();
+        self::trackPageView('client', 'google', new \DateTimeImmutable('-2 days'));
+        $recent = self::trackPageView('client', 'facebook', new \DateTimeImmutable('-12 hours'));
 
-        $tester = new CommandTester($this->createCommand());
-        $tester->execute([]);
+        $this->execute(lookbackWindow: 1)->assertCommandIsSuccessful();
 
-        $tester->assertCommandIsSuccessful();
-
-        $remaining = $this->em->getRepository(PrunableSource::class)->findAll();
-        self::assertCount(1, $remaining);
-        self::assertSame($keptId, reset($remaining)->getId());
+        self::assertSame([$recent->getId()], $this->remainingIds());
     }
 
     /**
      * @test
      */
-    public function it_prunes_everything_tracked_before_now_when_keeping_zero_days(): void
-    {
-        $this->em->persist(new PrunableSource(new \DateTimeImmutable('-1 minute')));
-        $this->em->flush();
-        $this->em->clear();
-
-        $tester = new CommandTester($this->createCommand(0));
-        $tester->execute([]);
-
-        $tester->assertCommandIsSuccessful();
-
-        self::assertCount(0, $this->em->getRepository(PrunableSource::class)->findAll());
-    }
-
-    /**
-     * @test
-     */
-    public function it_rejects_a_negative_number_of_days(): void
+    public function it_rejects_a_lookback_window_shorter_than_a_day(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->createCommand(-1);
+        $this->execute(lookbackWindow: 0);
     }
 
-    private function createCommand(?int $daysToKeep = null): Command
+    protected static function container(): ContainerInterface
     {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($this->em);
+        return self::getContainer();
+    }
 
-        $command = null === $daysToKeep
-            ? new PruneCommand($registry, PrunableSource::class)
-            : new PruneCommand($registry, PrunableSource::class, $daysToKeep);
+    /**
+     * @return list<mixed>
+     */
+    private function remainingIds(): array
+    {
+        $class = self::modelClass('setono_sylius_conversion_attribution.model.source.class', SourceInterface::class);
 
-        // Look the command up by its name, like the console does, so the name is tested too. Executing it
-        // needs no kernel: PruneCommandRegistrationTest checks that the plugin registers it in an application
-        $application = new Application();
-        $application->add($command);
+        self::entityManager()->clear();
 
-        return $application->find('setono:sylius-conversion-attribution:prune');
+        return array_map(static fn (SourceInterface $pageView): mixed => $pageView->getId(), self::entityManager()->getRepository($class)->findAll());
+    }
+
+    /**
+     * Runs the command as the application registers it or, given a lookback window, as built with it
+     */
+    private function execute(?int $lookbackWindow = null): CommandTester
+    {
+        $name = 'setono:sylius-conversion-attribution:prune';
+
+        if (null === $lookbackWindow) {
+            // getContainer() boots the kernel, unless the test already did
+            self::getContainer();
+            $command = (new Application(self::$kernel))->find($name);
+        } else {
+            $doctrine = self::getContainer()->get('doctrine');
+            self::assertInstanceOf(ManagerRegistry::class, $doctrine);
+            $sourceClass = self::modelClass('setono_sylius_conversion_attribution.model.source.class', SourceInterface::class);
+
+            $application = new ConsoleApplication();
+            $application->add(new PruneCommand($doctrine, $sourceClass, $lookbackWindow));
+            $command = $application->find($name);
+        }
+
+        $tester = new CommandTester($command);
+        $tester->execute([]);
+
+        return $tester;
     }
 }

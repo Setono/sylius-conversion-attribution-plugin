@@ -1,0 +1,4 @@
+doctrine:
+    dbal:
+        # dama/doctrine-test-bundle nests transactions, which needs savepoints (always on with DBAL 4)
+        use_savepoints: true

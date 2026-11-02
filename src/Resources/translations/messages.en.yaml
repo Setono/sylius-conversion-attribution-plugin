@@ -1,9 +1,10 @@
 setono_sylius_conversion_attribution:
     ui:
         attribution_heading: Attribution
-        attribution_body_with_source: The last non-direct click was from <strong>%source%</strong>. The details are below.
-        attribution_body_without_source: There was no non-direct click in this customers journey.
-        direct: Direct
+        attribution_body_with_source: The last non-direct visit before checkout was from <strong>%source%</strong>. The details are below.
+        attribution_body_direct: There was no non-direct visit before checkout. The last direct visit is below.
+        attribution_body_without_page_view: No visit was tracked for this customer in the lookback window before checkout.
+        attribution_body_not_tracked: This order was not tracked, so it has no attribution.
         source: Source
         medium: Medium
         campaign: Campaign

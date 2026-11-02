@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\DependencyInjection;
 
+use Setono\SyliusConversionAttributionPlugin\Model\Attribution;
 use Setono\SyliusConversionAttributionPlugin\Model\Source;
 use Sylius\Component\Resource\Factory\Factory;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
@@ -52,6 +53,11 @@ final class Configuration implements ConfigurationInterface
                 ->integerNode('session_timeout')
                     ->info('The number of seconds you consider a session lifetime. Default is 1800 seconds (30 minutes) which is used by Google Analytics and other analytics tools')
                     ->defaultValue(1800)
+                ->end()
+                ->integerNode('lookback_window')
+                    ->info('How many days before checkout a tracked page view can be credited for an order. Tracked page views are kept (and pruned after) as long')
+                    ->defaultValue(30)
+                    ->min(1)
         ;
 
         $this->addResourcesSection($rootNode);
@@ -61,21 +67,26 @@ final class Configuration implements ConfigurationInterface
 
     private function addResourcesSection(ArrayNodeDefinition $node): void
     {
-        $node
+        $resources = $node
             ->children()
                 ->arrayNode('resources')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->arrayNode('source')
+        ;
+
+        foreach (['source' => Source::class, 'attribution' => Attribution::class] as $resource => $model) {
+            $resources
+                ->arrayNode($resource)
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->variableNode('options')->end()
+                        ->arrayNode('classes')
                             ->addDefaultsIfNotSet()
                             ->children()
-                                ->variableNode('options')->end()
-                                ->arrayNode('classes')
-                                ->addDefaultsIfNotSet()
-                                ->children()
-                                    ->scalarNode('factory')->defaultValue(Factory::class)->cannotBeEmpty()->end()
-                                    ->scalarNode('model')->defaultValue(Source::class)->cannotBeEmpty()->end()
-                                    ->scalarNode('repository')->cannotBeEmpty()->end()
-        ;
+                                ->scalarNode('factory')->defaultValue(Factory::class)->cannotBeEmpty()->end()
+                                ->scalarNode('model')->defaultValue($model)->cannotBeEmpty()->end()
+                                ->scalarNode('repository')->cannotBeEmpty()->end()
+            ;
+        }
     }
 }

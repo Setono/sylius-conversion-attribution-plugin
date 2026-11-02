@@ -8,6 +8,11 @@ use Sylius\Component\Resource\Model\ResourceInterface;
 
 interface SourceInterface extends ResourceInterface, \Stringable
 {
+    /**
+     * The source of a page view that came with no click id, no utm_source and no referrer from another site
+     */
+    public const DIRECT = 'direct';
+
     public function getClientId(): ?string;
 
     public function setClientId(?string $clientId): void;

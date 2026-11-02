@@ -119,10 +119,11 @@ php bin/console assets:install
 
 If the script isn't installed, the browser gets a 404 for it and nothing is tracked.
 
-### Prune old sources (recommended)
+### Prune old page views (recommended)
 
-Every tracked visit creates a `source` row, so the table grows continuously. Schedule the prune
-command (for example daily via cron) to delete old rows. It keeps 180 days:
+Every tracked page view creates a `source` row, so the table grows continuously. Schedule the prune
+command (for example daily via cron) to delete the rows older than the lookback window (30 days by
+default): an order is credited when it's completed, so older page views can't be credited anymore:
 
 ```bash
 php bin/console setono:sylius-conversion-attribution:prune
@@ -140,6 +141,10 @@ setono_sylius_conversion_attribution:
 
     # Seconds of inactivity after which a visitor's next page view is tracked again
     session_timeout: 1800
+
+    # Days before checkout a tracked page view can be credited for an order. The prune command keeps page
+    # views this long
+    lookback_window: 30
 ```
 
 `query_parameters` maps query parameters, typically ad click ids, to a traffic source. The defaults are:
@@ -240,10 +245,12 @@ services:
 
 ### Attribution
 
-When a customer completes checkout, the visitor's client id is saved on the order and the customer.
-The order page in the admin then shows, in the sidebar, the newest non-direct source tracked for that
-client id up to checkout completion, with its medium, campaign, referrer, landing page and time.
-Visits after checkout, like the customer returning from a payment gateway, don't take the credit.
+When a customer completes checkout, the visitor's client id is saved on the order and the customer,
+and the order's attribution is recorded: the newest non-direct page view tracked for that client id in
+the lookback window (30 days) before checkout or, if there is none, the newest direct one, with its
+source, medium, campaign, referrer, landing page and time. The order page in the admin shows it in the
+sidebar. Visits after checkout, like the customer returning from a payment gateway, don't take the
+credit, and pruning old page views doesn't change it.
 
 ## Notes
 

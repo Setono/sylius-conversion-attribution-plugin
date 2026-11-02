@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      http://doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <mapped-superclass name="Setono\SyliusConversionAttributionPlugin\Model\Attribution"
+                       table="setono_sylius_conversion_attribution__attribution">
+        <id name="id" type="integer">
+            <generator strategy="AUTO"/>
+            <options>
+                <option name="unsigned">true</option>
+            </options>
+        </id>
+
+        <!-- One attribution per order, deleted with it -->
+        <one-to-one field="order" target-entity="Sylius\Component\Order\Model\OrderInterface">
+            <join-column name="order_id" referenced-column-name="id" nullable="false" unique="true" on-delete="CASCADE"/>
+        </one-to-one>
+
+        <field name="source"/>
+        <field name="medium" nullable="true"/>
+        <field name="campaign" nullable="true"/>
+        <field name="referrer" type="text" nullable="true"/>
+        <field name="landingPage" column="landing_page" type="text" nullable="true"/>
+        <field name="trackedAt" column="tracked_at" type="datetime"/>
+    </mapped-superclass>
+</doctrine-mapping>

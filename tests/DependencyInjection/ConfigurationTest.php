@@ -6,6 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\DependencyInjection\Configuration;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 final class ConfigurationTest extends TestCase
@@ -20,6 +21,25 @@ final class ConfigurationTest extends TestCase
         self::assertSame(['enabled' => true], $config['javascript']);
         self::assertSame([], $config['query_parameters']);
         self::assertSame(1800, $config['session_timeout']);
+        self::assertSame(30, $config['lookback_window']);
+    }
+
+    /**
+     * @test
+     */
+    public function it_rejects_a_lookback_window_shorter_than_a_day(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->process(['lookback_window' => 0]);
+    }
+
+    /**
+     * @test
+     */
+    public function it_accepts_a_lookback_window_of_a_day(): void
+    {
+        self::assertSame(1, $this->process(['lookback_window' => 1])['lookback_window']);
     }
 
     /**
