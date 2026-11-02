@@ -102,6 +102,8 @@ Test the legacy path by constructing the service without the new argument and as
 
 ## Agent skills
 
+- When grilling (`/mattpocock-skills:grilling`, `/mattpocock-skills:grill-me`, `/mattpocock-skills:grill-with-docs`, and grilling inside other skills), ask via the `AskUserQuestion` tool instead of as plain chat text. The skills ask in chat on purpose and leave this to the project's CLAUDE.md ([mattpocock/skills: native question tool](https://github.com/mattpocock/skills/blob/main/.out-of-scope/native-question-tool.md)).
+
 ### Issue tracker
 
 Issues live in GitHub Issues on Setono/sylius-conversion-attribution-plugin, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
