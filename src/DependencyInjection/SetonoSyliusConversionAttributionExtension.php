@@ -72,6 +72,9 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
     }
 
     /**
+     * Compares class names instead of instantiating the bundle to get its name: when the bundle is not
+     * installed, its class does not exist
+     *
      * @param class-string<BundleInterface> $bundleClass
      */
     private static function bundleEnabled(ContainerBuilder $container, string $bundleClass): bool
@@ -81,16 +84,8 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         }
 
         $bundles = $container->getParameter('kernel.bundles');
-        if (!is_array($bundles) || [] === $bundles) {
-            return false;
-        }
 
-        $bundle = new $bundleClass();
-        if (!$bundle instanceof BundleInterface) {
-            throw new \LogicException(sprintf('The class %s is not a valid bundle class.', $bundleClass));
-        }
-
-        return isset($bundles[$bundle->getName()]);
+        return is_array($bundles) && in_array($bundleClass, $bundles, true);
     }
 
     public function prepend(ContainerBuilder $container): void
