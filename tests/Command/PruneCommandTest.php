@@ -4,19 +4,12 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Command;
 
-use Doctrine\DBAL\DriverManager;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\Driver\AttributeDriver;
-use Doctrine\ORM\Mapping\Driver\SimplifiedXmlDriver;
-use Doctrine\ORM\ORMSetup;
-use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Command\PruneCommand;
-use Setono\SyliusConversionAttributionPlugin\Model\Source;
-use Setono\SyliusConversionAttributionPlugin\Tests\Command\Fixture\PrunableSource;
+use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\TrackedSource;
+use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\InMemoryEntityManager;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -27,53 +20,58 @@ final class PruneCommandTest extends TestCase
 
     protected function setUp(): void
     {
-        // The plugin's own XML mapping maps the Source model, and the fixture's attributes make it an entity
-        $modelNamespace = (new \ReflectionClass(Source::class))->getNamespaceName();
-        $driver = new MappingDriverChain();
-        $driver->addDriver(new SimplifiedXmlDriver([dirname(__DIR__, 2) . '/src/Resources/config/doctrine/model' => $modelNamespace], '.orm.xml', true), $modelNamespace);
-        $driver->addDriver(new AttributeDriver([__DIR__ . '/Fixture']), (new \ReflectionClass(PrunableSource::class))->getNamespaceName());
-
-        $config = ORMSetup::createConfiguration(true);
-        $config->setMetadataDriverImpl($driver);
-        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config);
-
-        // The public constructor works in both doctrine/orm 2.x and 3.x; the 2.x EntityManager::create()
-        // factory was removed in 3.x, so it is deliberately avoided here
-        $this->em = new EntityManager($connection, $config);
-
-        $schemaTool = new SchemaTool($this->em);
-        $schemaTool->createSchema([$this->em->getClassMetadata(PrunableSource::class)]);
+        $this->em = InMemoryEntityManager::create();
     }
 
     /**
      * @test
      */
-    public function it_prunes_only_rows_older_than_the_retention_window(): void
+    public function it_prunes_page_views_older_than_the_lookback_window(): void
     {
-        $old = new PrunableSource(new \DateTimeImmutable('-200 days'));
-        $recent = new PrunableSource(new \DateTimeImmutable('-10 days'));
-        $this->em->persist($old);
-        $this->em->persist($recent);
-        $this->em->flush();
-        $recentId = $recent->getId();
-        $this->em->clear();
+        $this->track('-31 days');
+        $recent = $this->track('-10 days');
 
-        $tester = new CommandTester($this->createCommand(180));
+        $tester = new CommandTester($this->createCommand(30));
         $tester->execute([]);
 
         $tester->assertCommandIsSuccessful();
-        self::assertStringContainsString('Pruning old conversion attribution sources', $tester->getDisplay());
+        self::assertStringContainsString('Pruning page views older than the lookback window', $tester->getDisplay());
         // the progress bar is finished, followed by a blank line
         self::assertMatchesRegularExpression('# 1/1 \[.+\] 100%\n\n$#u', $tester->getDisplay());
+        self::assertSame([$recent], $this->remainingIds());
+    }
 
-        // The command terminates (the pre-fix loop bound to getScalarResult()'s row shape never did)
-        // and leaves exactly the recent row behind
-        $remaining = $this->em->getRepository(PrunableSource::class)->findAll();
-        self::assertCount(1, $remaining);
+    /**
+     * @test
+     */
+    public function it_keeps_page_views_for_exactly_the_lookback_window(): void
+    {
+        $kept = $this->track('-29 days -12 hours');
+        $this->track('-30 days -12 hours');
 
-        $survivor = reset($remaining);
-        self::assertInstanceOf(PrunableSource::class, $survivor);
-        self::assertSame($recentId, $survivor->getId());
+        $tester = new CommandTester($this->createCommand(30));
+        $tester->execute([]);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertSame([$kept], $this->remainingIds());
+    }
+
+    /**
+     * @test
+     */
+    public function it_prunes_in_batches(): void
+    {
+        for ($i = 0; $i < 1001; ++$i) {
+            $this->em->persist(TrackedSource::at(new \DateTimeImmutable('-31 days')));
+        }
+        $this->em->flush();
+
+        $tester = new CommandTester($this->createCommand(30));
+        $tester->execute([]);
+
+        $tester->assertCommandIsSuccessful();
+        self::assertSame([], $this->remainingIds());
+        self::assertMatchesRegularExpression('# 1001/1001 \[.+\] 100%#u', $tester->getDisplay());
     }
 
     /**
@@ -81,81 +79,74 @@ final class PruneCommandTest extends TestCase
      */
     public function it_reports_success_when_there_is_nothing_to_prune(): void
     {
-        $this->em->persist(new PrunableSource(new \DateTimeImmutable('-1 day')));
-        $this->em->flush();
-        $this->em->clear();
+        $recent = $this->track('-1 day');
 
-        $tester = new CommandTester($this->createCommand(180));
+        $tester = new CommandTester($this->createCommand(30));
         $tester->execute([]);
 
         $tester->assertCommandIsSuccessful();
-        self::assertCount(1, $this->em->getRepository(PrunableSource::class)->findAll());
-        self::assertStringContainsString('Pruning old conversion attribution sources', $tester->getDisplay());
-        self::assertStringContainsString('[OK] No sources to prune', $tester->getDisplay());
+        self::assertSame([$recent], $this->remainingIds());
+        self::assertStringContainsString('[OK] No page views to prune', $tester->getDisplay());
     }
 
     /**
      * @test
      */
-    public function it_keeps_180_days_by_default(): void
+    public function it_accepts_a_lookback_window_of_a_day(): void
     {
-        $kept = new PrunableSource(new \DateTimeImmutable('-179 days -12 hours'));
-        $this->em->persist($kept);
-        $this->em->persist(new PrunableSource(new \DateTimeImmutable('-180 days -12 hours')));
-        $this->em->flush();
-        $keptId = $kept->getId();
-        $this->em->clear();
+        $this->track('-2 days');
+        $recent = $this->track('-12 hours');
 
-        $tester = new CommandTester($this->createCommand());
+        $tester = new CommandTester($this->createCommand(1));
         $tester->execute([]);
 
         $tester->assertCommandIsSuccessful();
-
-        $remaining = $this->em->getRepository(PrunableSource::class)->findAll();
-        self::assertCount(1, $remaining);
-        self::assertSame($keptId, reset($remaining)->getId());
+        self::assertSame([$recent], $this->remainingIds());
     }
 
     /**
      * @test
      */
-    public function it_prunes_everything_tracked_before_now_when_keeping_zero_days(): void
-    {
-        $this->em->persist(new PrunableSource(new \DateTimeImmutable('-1 minute')));
-        $this->em->flush();
-        $this->em->clear();
-
-        $tester = new CommandTester($this->createCommand(0));
-        $tester->execute([]);
-
-        $tester->assertCommandIsSuccessful();
-
-        self::assertCount(0, $this->em->getRepository(PrunableSource::class)->findAll());
-    }
-
-    /**
-     * @test
-     */
-    public function it_rejects_a_negative_number_of_days(): void
+    public function it_rejects_a_lookback_window_shorter_than_a_day(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->createCommand(-1);
+        $this->createCommand(0);
     }
 
-    private function createCommand(?int $daysToKeep = null): Command
+    private function track(string $createdAt): ?int
     {
+        $trackedSource = TrackedSource::at(new \DateTimeImmutable($createdAt));
+        $this->em->persist($trackedSource);
+        $this->em->flush();
+
+        return $trackedSource->getId();
+    }
+
+    /**
+     * @return list<int|null>
+     */
+    private function remainingIds(): array
+    {
+        $this->em->clear();
+
+        return array_map(
+            static fn (TrackedSource $trackedSource): ?int => $trackedSource->getId(),
+            $this->em->getRepository(TrackedSource::class)->findAll(),
+        );
+    }
+
+    private function createCommand(int $lookbackWindow): Command
+    {
+        $this->em->clear();
+
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($this->em);
 
-        $command = null === $daysToKeep
-            ? new PruneCommand($registry, PrunableSource::class)
-            : new PruneCommand($registry, PrunableSource::class, $daysToKeep);
-
         // Look the command up by its name, like the console does, so the name is tested too. Executing it
-        // needs no kernel: PruneCommandRegistrationTest checks that the plugin registers it in an application
+        // needs no kernel: CommandRegistrationTest checks that the plugin registers it in an application
         $application = new Application();
-        $application->add($command);
+        $application->add(new PruneCommand($registry, TrackedSource::class, $lookbackWindow));
 
         return $application->find('setono:sylius-conversion-attribution:prune');
     }

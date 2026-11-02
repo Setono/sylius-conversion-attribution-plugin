@@ -2,13 +2,14 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProviderInterface"
-                 alias="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProvider"/>
+        <service id="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface"
+                 alias="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributor"/>
 
-        <service id="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProvider">
+        <service id="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributor">
             <argument type="service" id="doctrine"/>
+            <argument type="service" id="setono_sylius_conversion_attribution.factory.attribution"/>
             <argument>%setono_sylius_conversion_attribution.model.source.class%</argument>
-            <argument>%setono_sylius_conversion_attribution.source.default%</argument>
+            <argument>%setono_sylius_conversion_attribution.lookback_window%</argument>
         </service>
     </services>
 </container>

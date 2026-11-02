@@ -31,8 +31,10 @@ test('an order is credited to the campaign the customer came from, not to a paym
     await page.getByRole('button', {name: 'Place order'}).click();
     await page.waitForURL(/\/order\/thank-you$/);
 
-    const {orders} = await state();
+    // The order is credited when it's completed
+    const {orders, attributions} = await state();
     expect(orders).toHaveLength(1);
+    expect(attributions).toEqual([expect.objectContaining({orderId: orders[0].id, source: 'newsletter', medium: 'email', campaign: 'fall'})]);
 
     // Sylius completes the checkout before the payment, so the customer returns from the payment gateway
     // afterwards, within the session. That must not be recorded as a referral
@@ -41,15 +43,15 @@ test('an order is credited to the campaign the customer came from, not to a paym
     expect(await page.evaluate(() => document.referrer)).toMatch(/^https:\/\/www\.paypal\.com\//);
     expect(trackRequests).toHaveLength(1); // the landing page view only
 
-    // later, in a new session, the customer comes back through an ad. The database stores times with
-    // second precision, so make sure that visit isn't in the same second as the checkout (a real one never is)
+    // later, in a new session, the customer comes back through an ad, which must not change the attribution
     await endSession(page);
-    await page.waitForTimeout(1000);
     response = tracked(page);
     await page.goto('/en_US/?utm_source=later&utm_medium=cpc');
     await response;
 
-    expect((await state()).sources.map((source) => source.source)).toEqual(['newsletter', 'later']);
+    const {sources, attributions: attributionsAfterwards} = await state();
+    expect(sources.map((source) => source.source)).toEqual(['newsletter', 'later']);
+    expect(attributionsAfterwards.map((attribution) => attribution.source)).toEqual(['newsletter']);
 
     await page.goto('/admin/login');
     await page.fill('#_username', 'sylius');

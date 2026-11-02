@@ -1,0 +1,9 @@
+--TEST--
+"setono_sylius_conversion_attribution" returns the attribution of an order
+--TEMPLATE--
+{% set attribution = setono_sylius_conversion_attribution(order) %}
+{{ attribution.source }} {{ attribution.medium }}
+--DATA--
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\ExtensionTest::order('client', ['source' => 'google', 'medium' => 'cpc'])]
+--EXPECT--
+google cpc

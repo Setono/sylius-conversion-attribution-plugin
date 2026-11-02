@@ -1,0 +1,27 @@
+--TEST--
+The box shows the direct page view an order is credited to when there was no non-direct one
+--TEMPLATE--
+{% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
+--DATA--
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\AttributionTemplateTest::order('client', ['source' => 'direct', 'landingPage' => 'https://shop.example/'])]
+--EXPECT--
+<div style="margin: 1em 0">
+    <h4 class="ui attached styled header top">Attribution</h4>
+    <div class="ui attached segment">
+        There was no non-direct visit before checkout. The last direct visit is below.
+        <table class="ui fixed very basic table">
+            <tr>
+                <td><strong>Source</strong></td>
+                <td>direct</td>
+            </tr>
+            <tr>
+                <td><strong>Landing page</strong></td>
+                <td class="single line"><a href="https://shop.example/" target="_blank" rel="noopener noreferrer">https://shop.example/</a></td>
+            </tr>
+            <tr>
+                <td><strong>When</strong></td>
+                <td>2026-10-26 11:00</td>
+            </tr>
+        </table>
+    </div>
+</div>

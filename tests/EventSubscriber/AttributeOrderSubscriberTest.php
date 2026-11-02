@@ -7,21 +7,24 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\EventSubscriber;
 use PHPUnit\Framework\TestCase;
 use Setono\Client\Client;
 use Setono\ClientBundle\Context\ClientContextInterface;
-use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber;
+use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface;
+use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AttributeOrderSubscriber;
+use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Tests\Application\Model\Customer;
 use Setono\SyliusConversionAttributionPlugin\Tests\Application\Model\Order;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\Customer as BaseCustomer;
 use Sylius\Component\Core\Model\Order as BaseOrder;
 
-final class AddClientIdSubscriberTest extends TestCase
+final class AttributeOrderSubscriberTest extends TestCase
 {
     /**
      * @test
      */
     public function it_subscribes_to_the_completion_of_an_order(): void
     {
-        self::assertSame(['sylius.order.pre_complete' => 'add'], AddClientIdSubscriber::getSubscribedEvents());
+        self::assertSame(['sylius.order.pre_complete' => 'attribute'], AttributeOrderSubscriber::getSubscribedEvents());
     }
 
     /**
@@ -35,10 +38,30 @@ final class AddClientIdSubscriberTest extends TestCase
         $order = new Order();
         $order->setCustomer($customer);
 
-        $this->createSubscriber('client')->add(new ResourceControllerEvent($order));
+        $this->createSubscriber('client')->attribute(new ResourceControllerEvent($order));
 
         self::assertSame('client', $order->getClientId());
         self::assertSame(['earlier-client', 'client'], $customer->getClientIds());
+    }
+
+    /**
+     * @test
+     */
+    public function it_attributes_the_order_once_it_has_the_client_id(): void
+    {
+        $order = new Order();
+
+        $orderAttributor = $this->createMock(OrderAttributorInterface::class);
+        $orderAttributor->expects(self::once())->method('attribute')->willReturnCallback(
+            static function (OrderInterface $attributed) use ($order): ?AttributionInterface {
+                self::assertSame($order, $attributed);
+                self::assertSame('client', $attributed->getClientId());
+
+                return null;
+            },
+        );
+
+        $this->createSubscriber('client', $orderAttributor)->attribute(new ResourceControllerEvent($order));
     }
 
     /**
@@ -48,7 +71,7 @@ final class AddClientIdSubscriberTest extends TestCase
     {
         $order = new Order();
 
-        $this->createSubscriber('client')->add(new ResourceControllerEvent($order));
+        $this->createSubscriber('client')->attribute(new ResourceControllerEvent($order));
 
         self::assertSame('client', $order->getClientId());
     }
@@ -61,7 +84,7 @@ final class AddClientIdSubscriberTest extends TestCase
         $order = new Order();
         $order->setCustomer(new BaseCustomer());
 
-        $this->createSubscriber('client')->add(new ResourceControllerEvent($order));
+        $this->createSubscriber('client')->attribute(new ResourceControllerEvent($order));
 
         self::assertSame('client', $order->getClientId());
     }
@@ -74,14 +97,17 @@ final class AddClientIdSubscriberTest extends TestCase
         $clientContext = $this->createMock(ClientContextInterface::class);
         $clientContext->expects(self::never())->method('getClient');
 
-        (new AddClientIdSubscriber($clientContext))->add(new ResourceControllerEvent(new BaseOrder()));
+        $orderAttributor = $this->createMock(OrderAttributorInterface::class);
+        $orderAttributor->expects(self::never())->method('attribute');
+
+        (new AttributeOrderSubscriber($clientContext, $orderAttributor))->attribute(new ResourceControllerEvent(new BaseOrder()));
     }
 
-    private function createSubscriber(string $clientId): AddClientIdSubscriber
+    private function createSubscriber(string $clientId, ?OrderAttributorInterface $orderAttributor = null): AttributeOrderSubscriber
     {
         $clientContext = $this->createMock(ClientContextInterface::class);
         $clientContext->method('getClient')->willReturn(new Client($clientId));
 
-        return new AddClientIdSubscriber($clientContext);
+        return new AttributeOrderSubscriber($clientContext, $orderAttributor ?? $this->createMock(OrderAttributorInterface::class));
     }
 }

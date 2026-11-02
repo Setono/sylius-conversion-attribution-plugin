@@ -1,0 +1,13 @@
+--TEST--
+The box tells when an order wasn't tracked (it has no client id)
+--TEMPLATE--
+{% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
+--DATA--
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\AttributionTemplateTest::order(null)]
+--EXPECT--
+<div style="margin: 1em 0">
+    <h4 class="ui attached styled header top">Attribution</h4>
+    <div class="ui attached segment">
+        This order was not tracked, so it has no attribution.
+    </div>
+</div>

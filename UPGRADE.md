@@ -26,9 +26,33 @@ It is now a static file with all per-visitor work done server side when a page v
 
 ## Attribution
 
-- An order is credited to the newest non-direct source tracked **up to its checkout completion**
-  (`OrderAttributionProvider`). Before, it was the newest one overall, so a later visit, or the customer
-  returning from a payment gateway after checkout, could take the credit for an earlier order.
+An order's attribution is now recorded when the order is completed, in a new table
+(`setono_sylius_conversion_attribution__attribution`, model `Model\Attribution`), instead of being looked
+up each time the admin order page is shown. It's the newest non-direct page view tracked for the order's
+client id in the lookback window before checkout (`lookback_window`, 30 days by default) or, if there is
+none, the newest direct one. Before, it was the newest non-direct one of any age, and an order lost it
+when the prune command deleted that page view. The prune command now keeps only the lookback window
+(30 days instead of 180), as older page views can't be credited anymore.
+
+**Upgrade in this order**, or the prune command deletes the page views older orders need:
+
+1. Stop the scheduled prune command.
+2. Deploy, and add the new table with a migration (`doctrine:migrations:diff` and
+   `doctrine:migrations:migrate`).
+3. Attribute the orders completed before the upgrade, from the page views still stored:
+   ```bash
+   php bin/console setono:sylius-conversion-attribution:backfill
+   ```
+4. Schedule the prune command again.
+
+- If you override the admin template (`order/attribution.html.twig`), call
+  `setono_sylius_conversion_attribution(order)` instead of
+  `setono_sylius_conversion_attribution_last_non_direct(order)`. It returns a `Model\AttributionInterface`
+  (`landingPage` and `trackedAt` instead of `page` and `createdAt`) or `null`. Escape the source before
+  passing it to a translation you print `raw`, and only link the referrer and landing page when they
+  start with `http://` or `https://`: the visitor controls all three.
+- The translation keys `attribution_body_without_source` and `direct` are replaced by
+  `attribution_body_direct`, `attribution_body_without_page_view` and `attribution_body_not_tracked`.
 
 ## Constructor and signature changes
 
@@ -45,6 +69,11 @@ If you redefine, decorate or extend these services, update the arguments:
   It takes the referrer database instead of the referrer parser.
 - `CacheWarmer\ReferrersCacheWarmer::__construct(ReferrerDatabase $referrerDatabase, string $url = …)`.
   It builds the referrer database instead of writing a cache file itself.
+- `EventSubscriber\AddClientIdSubscriber` is replaced by
+  `EventSubscriber\AttributeOrderSubscriber::__construct(ClientContextInterface $clientContext, OrderAttributorInterface $orderAttributor)`,
+  which also records the order's attribution.
+- `Command\PruneCommand::__construct(ManagerRegistry $managerRegistry, string $sourceClass, int $lookbackWindow)`.
+  It keeps the lookback window instead of an optional `$daysToKeep` (180).
 
 ## Source matchers
 
@@ -73,10 +102,15 @@ If you redefine, decorate or extend these services, update the arguments:
 - `Parser\Referrer`, `Parser\ReferrerParser` and `Parser\ReferrerParserInterface` (and their services),
   and the `setono_sylius_conversion_attribution.referrers.cache.adapter` cache service. To look referrers
   up differently, point the `Referrer\ReferrerDatabaseInterface` alias at your own implementation.
+- `Provider\OrderAttributionProvider` and `Provider\OrderAttributionProviderInterface` (and their service).
+  `Attribution\OrderAttributorInterface` records an order's attribution; read it with the
+  `setono_sylius_conversion_attribution(order)` Twig function or the attribution repository
+  (`setono_sylius_conversion_attribution.repository.attribution`).
 
 ## Dependencies
 
 - `symfony/asset` is required (the script's URL is generated through the `assets.packages` service).
 - `symfony/deprecation-contracts` is no longer required.
 - `symfony/cache` is no longer required.
+- `doctrine/collections` is required.
 - Twig 2 is no longer supported: `twig/twig` ^3.21 is required.
