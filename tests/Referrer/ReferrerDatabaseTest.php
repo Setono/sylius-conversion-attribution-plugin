@@ -149,6 +149,18 @@ final class ReferrerDatabaseTest extends TestCase
     /**
      * @test
      */
+    public function it_finds_nothing_in_a_file_that_is_not_a_database(): void
+    {
+        // e.g. an empty file, or another file at the same path
+        $file = $this->dir . '/referrers.php';
+        file_put_contents($file, "<?php\n");
+
+        self::assertNull((new ReferrerDatabase($file))->lookup('https://google.com/'));
+    }
+
+    /**
+     * @test
+     */
     public function it_finds_what_it_built_after_looking_up_before(): void
     {
         $database = new ReferrerDatabase($this->dir . '/referrers.php');

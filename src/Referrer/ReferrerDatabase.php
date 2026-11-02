@@ -131,8 +131,13 @@ final class ReferrerDatabase implements ReferrerDatabaseInterface
     private function referrers(): array
     {
         if (null === $this->referrers) {
+            // include, not require: if the file disappears after the is_file() check (e.g. while a deploy
+            // swaps the cache directory), require would end the process with a fatal error, while include
+            // only warns and returns false, so the lookup finds nothing instead
+            $included = is_file($this->file) ? include $this->file : [];
+
             /** @var array<string, array{string, ?string}> $referrers */
-            $referrers = is_file($this->file) ? require $this->file : [];
+            $referrers = is_array($included) ? $included : [];
             $this->referrers = $referrers;
         }
 
