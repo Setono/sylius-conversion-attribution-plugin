@@ -1,5 +1,9 @@
-const base = require('@playwright/test');
+const path = require('path');
 const app = require('./app');
+
+// The tests live outside the test application, so @playwright/test is not found by walking up from them; load the
+// copy in the test application's node_modules, which is the one the runner uses
+const base = require(require.resolve('@playwright/test', {paths: [path.resolve(__dirname, '../../Application')]}));
 
 /**
  * Playwright's own test, extended with:
