@@ -7,6 +7,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Parser;
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Parser\Referrer;
 use Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParser;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\CacheItem;
 
@@ -104,18 +105,8 @@ final class ReferrerParserTest extends TestCase
 
     private function parser(): ReferrerParser
     {
-        // ArrayAdapter only validates keys in an assertion (disabled in production), unlike the pools
-        // behind the real cache, so validate them here like those do
-        $cache = new class() extends ArrayAdapter {
-            public function getItem(mixed $key): CacheItem
-            {
-                CacheItem::validateKey($key);
-
-                return parent::getItem($key);
-            }
-        };
-
         // Same format as ReferrersCacheWarmer writes: slashes in paths are stored as pipes
+        $values = new ArrayAdapter();
         foreach ([
             'google.com' => ['source' => 'Google', 'medium' => 'search'],
             'google.com|imgres' => ['source' => 'Google Images', 'medium' => 'search'],
@@ -126,8 +117,17 @@ final class ReferrerParserTest extends TestCase
             'medium-not-a-string.test' => ['source' => 'Medium not a string', 'medium' => 1],
             'source-not-a-string.test' => ['source' => 1, 'medium' => 'search'],
         ] as $key => $value) {
-            $cache->save($cache->getItem($key)->set($value));
+            $values->save($values->getItem($key)->set($value));
         }
+
+        // ArrayAdapter only validates keys in an assertion, which production configurations disable, so
+        // validate them like the filesystem and APCu pools behind the real cache do
+        $cache = $this->createMock(AdapterInterface::class);
+        $cache->method('getItem')->willReturnCallback(static function (string $key) use ($values): CacheItem {
+            CacheItem::validateKey($key);
+
+            return $values->getItem($key);
+        });
 
         return new ReferrerParser($cache);
     }
