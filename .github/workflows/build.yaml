@@ -211,6 +211,12 @@ jobs:
                 working-directory: "tests/Application"
                 run: "yarn install --non-interactive"
 
+            -   name: "Check that the built tracking script is up to date"
+                working-directory: "tests/Application"
+                run: |
+                    yarn build:tracking-script
+                    git diff --exit-code -- ../../src/Resources/public/js/track.js || { echo "::error::src/Resources/public/js/track.js is out of date: run 'yarn build:tracking-script' in tests/Application and commit the result"; exit 1; }
+
             -   name: "Run Jest"
                 working-directory: "tests/Application"
                 run: "yarn test"
