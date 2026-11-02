@@ -99,3 +99,17 @@ This is a published library: adding a required constructor argument to a service
 **Removing the shim in the next major:** grep the `src/` tree for `trigger_deprecation` — each hit is a nullable argument to make required (drop the `?`/`= null`, delete the `trigger_deprecation` block and the null-guards). Current shims: none (2.0 dropped all of 1.x's; see `UPGRADE.md`).
 
 Test the legacy path by constructing the service without the new argument and asserting the deprecation fires (register a temporary `E_USER_DEPRECATED` handler with `set_error_handler()` around the construction). Mark such tests `@group legacy`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on Setono/sylius-conversion-attribution-plugin, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels, each named after its role: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root, created lazily by `/domain-modeling`. See `docs/agents/domain.md`.
