@@ -49,7 +49,7 @@ final class AddJavascriptSubscriber implements EventSubscriberInterface
         if (!$event->isMainRequest() ||
             $request->isXmlHttpRequest() ||
             !$request->isMethod('GET') ||
-            !str_contains((string) $request->getRequestFormat(), 'html')
+            !str_contains($request->getRequestFormat() ?? '', 'html')
         ) {
             return;
         }

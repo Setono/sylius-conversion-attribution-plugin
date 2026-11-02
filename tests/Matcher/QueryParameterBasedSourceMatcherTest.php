@@ -45,6 +45,20 @@ final class QueryParameterBasedSourceMatcherTest extends TestCase
     /**
      * @test
      */
+    public function it_tries_every_query_parameter_of_a_mapping(): void
+    {
+        $matcher = new QueryParameterBasedSourceMatcher([
+            ['matches' => ['gclid', 'gbraid', 'wbraid'], 'source' => 'google', 'medium' => 'cpc', 'campaign' => null],
+        ]);
+        $res = $matcher->match(new PageView('https://shop.example/?wbraid=abc'));
+
+        self::assertNotNull($res);
+        self::assertSame('google', $res->source);
+    }
+
+    /**
+     * @test
+     */
     public function it_skips_empty_and_non_string_values(): void
     {
         $matcher = new QueryParameterBasedSourceMatcher([

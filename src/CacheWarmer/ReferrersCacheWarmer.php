@@ -17,8 +17,11 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface, LoggerAwareInt
 
     private LoggerInterface $logger;
 
-    public function __construct(private readonly string $phpArrayFile)
-    {
+    public function __construct(
+        private readonly string $phpArrayFile,
+        // Where Snowplow's referer database is downloaded from
+        private readonly string $url = self::REFERRERS_URL,
+    ) {
         $this->logger = new NullLogger();
     }
 
@@ -34,18 +37,19 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface, LoggerAwareInt
 
     public function warmUp(string $cacheDir): array
     {
-        // Use an explicit timeout so a slow/unreachable host can't stall cache warmup (and thereby a deploy)
-        $context = stream_context_create(['http' => ['timeout' => 5], 'https' => ['timeout' => 5]]);
-        $json = @file_get_contents(self::REFERRERS_URL, false, $context);
+        // Use an explicit timeout so a slow/unreachable host can't stall cache warmup (and thereby a deploy).
+        // The http context options apply to https:// URLs too
+        $context = stream_context_create(['http' => ['timeout' => 5]]);
+        $json = @file_get_contents($this->url, context: $context);
         if (false === $json) {
-            $this->logger->warning('Could not download the referrers database from {url}; referrer-based attribution will be degraded until the next successful cache warmup.', ['url' => self::REFERRERS_URL]);
+            $this->logger->warning('Could not download the referrers database from {url}; referrer-based attribution will be degraded until the next successful cache warmup.', ['url' => $this->url]);
 
             return [];
         }
 
         try {
             /** @var array<string, array<string, array{domains: list<string>}>> $data */
-            $data = json_decode($json, true, 512, \JSON_THROW_ON_ERROR);
+            $data = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             $this->logger->warning('Could not decode the referrers database: {message}', ['message' => $e->getMessage()]);
 
