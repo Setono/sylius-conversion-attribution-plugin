@@ -15,6 +15,9 @@ final class SetonoSyliusConversionAttributionPlugin extends AbstractResourceBund
 {
     use SyliusPluginTrait;
 
+    /**
+     * @return list<string>
+     */
     public function getSupportedDrivers(): array
     {
         return [

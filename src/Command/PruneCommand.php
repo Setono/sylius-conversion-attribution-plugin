@@ -51,7 +51,8 @@ final class PruneCommand extends Command
         $io->progressStart($total);
 
         while (($deletableIds = $this->getDeletableIds()) !== []) {
-            $progress = (int) $this
+            // A DQL DELETE returns the number of deleted rows
+            $progress = $this
                 ->getRepository($this->sourceClass)
                 ->createQueryBuilder('o')
                 ->delete()
@@ -60,6 +61,7 @@ final class PruneCommand extends Command
                 ->getQuery()
                 ->execute()
             ;
+            Assert::integer($progress);
 
             $io->progressAdvance($progress);
         }

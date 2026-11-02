@@ -19,22 +19,18 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
     public function load(array $configs, ContainerBuilder $container): void
     {
         /**
-         * @psalm-suppress PossiblyNullArgument
-         *
          * @var array{
          *     javascript: array{enabled: bool},
-         *     query_parameters: array,
+         *     query_parameters: array<string, array{enabled: bool, matches: list<string>, source: ?string, medium: ?string, campaign: ?string}>,
          *     session_timeout: int,
-         *     resources: array
+         *     resources: array<string, mixed>
          * } $config
          */
         $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         $container->setParameter('setono_sylius_conversion_attribution.javascript.enabled', $config['javascript']['enabled']);
-        $container->setParameter('setono_sylius_conversion_attribution.query_parameters', array_filter($config['query_parameters'], static function (array $queryParameter): bool {
-            return !array_key_exists('enabled', $queryParameter) || true === $queryParameter['enabled'];
-        }));
+        $container->setParameter('setono_sylius_conversion_attribution.query_parameters', array_filter($config['query_parameters'], static fn (array $queryParameter): bool => $queryParameter['enabled']));
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
         $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
         $container->setParameter('setono_sylius_conversion_attribution.source.default', 'direct');

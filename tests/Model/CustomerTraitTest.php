@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Model;
 
 use PHPUnit\Framework\TestCase;
-use Setono\SyliusConversionAttributionPlugin\Tests\Application\Model\Customer;
+use Setono\SyliusConversionAttributionPlugin\Tests\Model\Fixture\Customer;
 
 final class CustomerTraitTest extends TestCase
 {

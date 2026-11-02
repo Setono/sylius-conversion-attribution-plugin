@@ -12,8 +12,7 @@
 /ecs.php                            export-ignore
 /etc                                export-ignore
 /infection.json.dist                export-ignore
+/phpstan.neon                       export-ignore
 /phpunit.xml.dist                   export-ignore
-/psalm-baseline.xml                 export-ignore
-/psalm.xml                          export-ignore
 /rector.php                         export-ignore
 /tests                              export-ignore

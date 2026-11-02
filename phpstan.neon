@@ -1,0 +1,26 @@
+parameters:
+    level: max
+
+    paths:
+        - src
+        - tests
+
+    excludePaths:
+        - tests/Application/*
+
+    bootstrapFiles:
+        - vendor/autoload.php
+
+    # Symfony Configuration
+    symfony:
+        consoleApplicationLoader: tests/PHPStan/console_application.php
+
+    # Doctrine Configuration
+    doctrine:
+        repositoryClass: Doctrine\ORM\EntityRepository
+        objectManagerLoader: tests/PHPStan/object_manager.php
+        # Like Sylius' own models, the entities have nullable properties for required columns, set before they're persisted
+        allowNullablePropertyForRequiredField: true
+
+    reportUnmatchedIgnoredErrors: false
+    treatPhpDocTypesAsCertain: false

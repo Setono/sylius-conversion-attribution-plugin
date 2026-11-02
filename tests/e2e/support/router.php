@@ -6,7 +6,8 @@ declare(strict_types=1);
 // through the Symfony front controller, also paths containing a dot (e.g. liip's /media/cache/resolve/...)
 $publicDir = dirname(__DIR__, 2) . '/Application/public';
 
-$path = parse_url($_SERVER['REQUEST_URI'] ?? '/', \PHP_URL_PATH);
+$uri = $_SERVER['REQUEST_URI'] ?? '/';
+$path = is_string($uri) ? parse_url($uri, \PHP_URL_PATH) : null;
 if (is_string($path) && is_file($publicDir . $path)) {
     return false;
 }

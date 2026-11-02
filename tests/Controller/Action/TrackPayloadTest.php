@@ -6,6 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Controller\Action;
 
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackPayload;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validation;
 
 final class TrackPayloadTest extends TestCase
@@ -35,7 +36,7 @@ final class TrackPayloadTest extends TestCase
         self::assertCount(2, $this->validate(str_repeat('a', 4097), str_repeat('a', 4097)));
     }
 
-    private function validate(string $page, ?string $referrer): iterable
+    private function validate(string $page, ?string $referrer): ConstraintViolationListInterface
     {
         $payload = new TrackPayload();
         $payload->page = $page;

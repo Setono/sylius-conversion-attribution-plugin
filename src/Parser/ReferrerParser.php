@@ -40,6 +40,9 @@ final class ReferrerParser implements ReferrerParserInterface
         return new Referrer($referrerLookup['medium'], $referrerLookup['source']);
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     private function lookup(string $host, string $path): ?array
     {
         $referrer = $this->lookupPath($host, $path);
@@ -51,6 +54,9 @@ final class ReferrerParser implements ReferrerParserInterface
         return $this->lookupHost($host);
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     private function lookupPath(string $host, string $path): ?array
     {
         $referer = $this->lookupHost($host, $path);
@@ -69,6 +75,9 @@ final class ReferrerParser implements ReferrerParserInterface
         return $this->lookupPath($host, $path);
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     private function lookupHost(string $host, string $path = ''): ?array
     {
         do {
@@ -114,7 +123,7 @@ final class ReferrerParser implements ReferrerParserInterface
     private static function parseUrl(string $url): ?array
     {
         $parts = parse_url($url);
-        if (!is_array($parts) || !isset($parts['scheme'], $parts['host']) || !in_array(strtolower($parts['scheme']), ['http', 'https'])) {
+        if (!is_array($parts) || !isset($parts['scheme'], $parts['host']) || !in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
             return null;
         }
 
