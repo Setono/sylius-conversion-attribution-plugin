@@ -41,6 +41,10 @@ If you redefine, decorate or extend these services, update the arguments:
   The client information resolver, bot detector, cookie provider and source matcher arguments are gone.
   The subscriber adds a `ScriptTag` instead of an `InlineScriptTag`.
 - `SourceFactoryInterface::createFromClientInformation()` is removed; use `createNew()` and the setters.
+- `Matcher\ReferrerBasedSourceMatcher::__construct(ReferrerDatabaseInterface $referrerDatabase, string $medium = 'referral')`.
+  It takes the referrer database instead of the referrer parser.
+- `CacheWarmer\ReferrersCacheWarmer::__construct(ReferrerDatabase $referrerDatabase, string $url = …)`.
+  It builds the referrer database instead of writing a cache file itself.
 
 ## Source matchers
 
@@ -55,6 +59,10 @@ If you redefine, decorate or extend these services, update the arguments:
   `InvalidArgumentException` for a blank source. A matcher that can't name the source must return `null`.
   A link with a blank `utm_source` (e.g. `?utm_source=&utm_medium=cpc`) is no longer stored with an empty
   source; the referrer decides the source instead, as when `utm_source` is missing.
+- Referrers are looked up in `Referrer\ReferrerDatabaseInterface::lookup()`, which returns a
+  `Matcher\Source`. Sites Snowplow lists without a medium (`unknown`, e.g. Google Maps, Google Drive and
+  Yandex Maps) are now credited to their source with the medium `referral` instead of to their host, and
+  hosts match regardless of their case.
 
 ## Removed classes
 
@@ -62,9 +70,13 @@ If you redefine, decorate or extend these services, update the arguments:
   `Resolver\ClientInformationResolverInterface` (and the service of the same name). To change how the
   traffic source is resolved, add a source matcher (tag `setono_sylius_conversion_attribution.source_matcher`);
   the client id comes from `setono/client-bundle`'s `ClientContextInterface`.
+- `Parser\Referrer`, `Parser\ReferrerParser` and `Parser\ReferrerParserInterface` (and their services),
+  and the `setono_sylius_conversion_attribution.referrers.cache.adapter` cache service. To look referrers
+  up differently, point the `Referrer\ReferrerDatabaseInterface` alias at your own implementation.
 
 ## Dependencies
 
 - `symfony/asset` is required (the script's URL is generated through the `assets.packages` service).
 - `symfony/deprecation-contracts` is no longer required.
+- `symfony/cache` is no longer required.
 - Twig 2 is no longer supported: `twig/twig` ^3.21 is required.

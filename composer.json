@@ -20,7 +20,6 @@
         "sylius/core-bundle": "^1.0",
         "sylius/resource-bundle": "^1.6",
         "symfony/asset": "^6.4",
-        "symfony/cache": "^6.4",
         "symfony/config": "^6.4",
         "symfony/console": "^6.4",
         "symfony/dependency-injection": "^6.4",

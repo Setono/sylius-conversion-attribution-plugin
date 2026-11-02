@@ -18,7 +18,7 @@
         </service>
 
         <service id="Setono\SyliusConversionAttributionPlugin\Matcher\ReferrerBasedSourceMatcher">
-            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParserInterface"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabaseInterface"/>
 
             <tag name="setono_sylius_conversion_attribution.source_matcher" priority="100"/>
         </service>

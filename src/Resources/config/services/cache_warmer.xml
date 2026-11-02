@@ -3,7 +3,7 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer">
-            <argument>%setono_sylius_conversion_attribution.referrers.cache.file%</argument>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase"/>
 
             <call method="setLogger">
                 <argument type="service" id="logger" on-invalid="ignore"/>
