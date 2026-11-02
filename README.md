@@ -8,6 +8,8 @@
 
 See where customers are coming from by attributing conversions directly in your Sylius store
 
+Upgrading from 1.x? See [UPGRADE.md](UPGRADE.md).
+
 ## Installation
 
 ### Download plugin
@@ -16,11 +18,31 @@ See where customers are coming from by attributing conversions directly in your 
 composer require setono/sylius-conversion-attribution-plugin
 ```
 
-Notice that this also installs the `setono/client-bundle` which is required by this plugin to work properly.
+This also installs [`setono/client-bundle`](https://github.com/Setono/ClientBundle), which identifies
+visitors with the `setono_client_id` cookie, and [`setono/bot-detection-bundle`](https://github.com/Setono/BotDetectionBundle).
 
-If you want to use the default javascript injection, you should also install the `setono/tag-bag-bundle`.
+The tracking script tag is added to your pages through [`setono/tag-bag-bundle`](https://github.com/Setono/TagBagBundle)
+(3.1 or later), so install it too and follow its installation instructions:
 
-See the installation instructions for the `setono/tag-bag-bundle` [here](https://github.com/Setono/TagBagBundle).
+```bash
+composer require setono/tag-bag-bundle
+```
+
+If you'd rather render the script tag yourself, disable the `javascript` feature instead (see [Configuration](#configuration)).
+
+### Register the plugin
+
+Symfony Flex registers the client, bot detection and tag bag bundles, but not this plugin, so add it to
+`config/bundles.php`:
+
+```php
+<?php
+
+return [
+    // ...
+    Setono\SyliusConversionAttributionPlugin\SetonoSyliusConversionAttributionPlugin::class => ['all' => true],
+];
+```
 
 ### Import routes
     
@@ -99,16 +121,54 @@ If the script isn't installed, the browser gets a 404 for it and nothing is trac
 
 ### Prune old sources (recommended)
 
-Every tracked hit creates a `source` row, so the table grows continuously. Schedule the prune
-command (for example daily via cron) to delete old rows. By default it keeps 180 days:
+Every tracked visit creates a `source` row, so the table grows continuously. Schedule the prune
+command (for example daily via cron) to delete old rows. It keeps 180 days:
 
 ```bash
 php bin/console setono:sylius-conversion-attribution:prune
 ```
 
-## Notes
+## Configuration
 
-### How tracking works
+All options are optional. These are the defaults:
+
+```yaml
+# config/packages/setono_sylius_conversion_attribution.yaml
+setono_sylius_conversion_attribution:
+    # Adds the tracking script tag to HTML pages (requires setono/tag-bag-bundle)
+    javascript: true
+
+    # Seconds of inactivity after which a visitor's next page view is tracked again
+    session_timeout: 1800
+```
+
+`query_parameters` maps query parameters, typically ad click ids, to a traffic source. The defaults are:
+
+| Key         | Query parameters            | Source                | Medium |
+|-------------|-----------------------------|-----------------------|--------|
+| `facebook`  | `fbclid`                    | `facebook`            | `cpc`  |
+| `google`    | `gclid`, `gbraid`, `wbraid` | `google`              | `cpc`  |
+| `microsoft` | `msclkid`                   | `bing`                | `cpc`  |
+| `generic`   | `source`, `ref`             | the parameter's value |        |
+| `tiktok`    | `ttclid`                    | `tiktok`              | `cpc`  |
+| `x`         | `twclid`                    | `x`                   | `cpc`  |
+
+Add your own, or disable a default by its key:
+
+```yaml
+setono_sylius_conversion_attribution:
+    query_parameters:
+        pinterest:
+            matches: [epik]
+            source: pinterest # without a source, the parameter's value is used
+            medium: cpc # optional, like campaign
+        generic:
+            enabled: false
+```
+
+## How it works
+
+### Tracking
 
 On every HTML page the plugin adds this tag (through the tag bag):
 
@@ -126,11 +186,71 @@ referrer, since that's where the visitor came from. Later page views within the 
 even with campaign parameters or a referrer from another site, so a customer returning from a payment
 gateway (PayPal, Stripe, …) is never recorded as a referral. Prerendered pages are tracked when they are shown, not before.
 
+### Traffic sources
+
+A tracked page view gets its source from the first of these that matches:
+
+1. A query parameter from `query_parameters` (`gclid`, `fbclid`, …, see [Configuration](#configuration))
+2. `utm_source`, together with `utm_medium` and `utm_campaign`
+3. The referrer. Search engines, social networks and email providers are looked up in
+   [Snowplow's referer database](https://github.com/snowplow-referer-parser/referer-parser), which is
+   downloaded when the cache is warmed up (if the download fails, a warning is logged and the lookup
+   is skipped until the next warmup). Any other site becomes its host with the medium `referral`.
+   Referrers from your own host are ignored.
+4. Otherwise the source is `direct`.
+
+To add your own rule, implement `SourceMatcherInterface` and tag the service. The priority decides
+the order: the built-in matchers have 300 (query parameters), 200 (utm) and 100 (referrer).
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Attribution;
+
+use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
+use Setono\SyliusConversionAttributionPlugin\Matcher\Source;
+use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
+
+final class NewsletterSourceMatcher implements SourceMatcherInterface
+{
+    public function match(PageView $pageView): ?Source
+    {
+        // $pageView->url, $pageView->referrer and $pageView->host are available too
+        $issue = $pageView->getQueryParameter('newsletter');
+        if (null === $issue) {
+            return null;
+        }
+
+        return new Source('newsletter', 'email', $issue);
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+services:
+    App\Attribution\NewsletterSourceMatcher:
+        tags:
+            - { name: setono_sylius_conversion_attribution.source_matcher, priority: 250 }
+```
+
+### Attribution
+
+When a customer completes checkout, the visitor's client id is saved on the order and the customer.
+The order page in the admin then shows, in the sidebar, the newest non-direct source tracked for that
+client id up to checkout completion, with its medium, campaign, referrer, landing page and time.
+Visits after checkout, like the customer returning from a payment gateway, don't take the credit.
+
+## Notes
+
 ### Optional runtime dependencies
 
 - The default JavaScript injection requires [`setono/tag-bag-bundle`](https://github.com/Setono/TagBagBundle).
-  Without it, enabling the `javascript` feature throws at container build time. Install it, or set
-  `setono_sylius_conversion_attribution.javascript.enabled: false` and render the script tag above yourself.
+  Without it, the container fails to build while the `javascript` feature is enabled (the default).
+  Install it, or set `setono_sylius_conversion_attribution.javascript: false` and render the script
+  tag above yourself.
 - Bot filtering (for the `/track` endpoint) is provided by `setono/bot-detection-bundle`, which is
   installed automatically as a dependency. Most bots are filtered structurally anyway: they don't
   execute JavaScript, so they never POST to `/track`. Automated browsers that *do* execute JavaScript
@@ -164,7 +284,8 @@ Content-Security-Policy: script-src 'self'; connect-src 'self'
 A `source` row stores the visitor's IP address and user agent, which are personal data in many
 jurisdictions. Keep retention short by scheduling the prune command, and ensure your privacy policy
 and consent handling cover this collection (you may need to anonymize or omit the IP depending on your
-requirements).
+requirements). On the visitor's device, the client id lives in the `setono_client_id` cookie and the
+script keeps its session timestamp in `localStorage` (`ssca_last_seen`).
 
 [ico-version]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/v/stable
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license
