@@ -1,39 +1,25 @@
 {
-    "dependencies": {
-        "chart.js": "^3.9",
-        "jquery": "^3.6",
-        "jquery.dirtyforms": "^2.0",
-        "lightbox2": "^2.9",
-        "semantic-ui-css": "^2.2",
-        "slick-carousel": "^1.8"
+    "license": "UNLICENSED",
+    "scripts": {
+        "build": "encore dev",
+        "build:prod": "encore production",
+        "build:tracking-script": "terser ../../src/Resources/private/js/track.js --compress --mangle --comments false --output ../../src/Resources/public/js/track.js",
+        "e2e": "playwright test",
+        "postinstall": "semantic-ui-css-patch",
+        "lint": "yarn lint:js",
+        "test": "jest",
+        "watch": "encore dev --watch"
     },
     "devDependencies": {
         "@playwright/test": "^1.64.0",
-        "@symfony/webpack-encore": "^1.8",
-        "eslint": "^8.18",
-        "eslint-config-airbnb-base": "^15.0",
-        "eslint-import-resolver-babel-module": "^5.3",
-        "eslint-plugin-import": "^2.26",
+        "@sylius-ui/frontend": "^1.0.3",
         "jest": "^30.5.2",
         "jest-environment-jsdom": "^30.5.2",
-        "sass": "^1.105.1",
-        "sass-loader": "^12.0",
         "terser": "5.51.2"
     },
-    "scripts": {
-        "dev": "encore dev",
-        "build": "encore production",
-        "watch": "encore dev --watch",
-        "test": "jest",
-        "e2e": "playwright test",
-        "build:tracking-script": "terser ../../src/Resources/private/js/track.js --compress --mangle --comments false --output ../../src/Resources/public/js/track.js"
+    "resolutions": {
+        "jquery": "^3.7.1"
     },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/Sylius/Sylius.git"
-    },
-    "author": "Paweł Jędrzejewski",
-    "license": "MIT",
     "jest": {
         "roots": [
             "<rootDir>/../js"

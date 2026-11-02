@@ -13,7 +13,7 @@ sylius_shop:
 
 sylius_api:
     enabled: true
-    
+
 sylius_customer:
     resources:
         customer:

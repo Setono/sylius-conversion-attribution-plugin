@@ -23,6 +23,8 @@ composer normalize --dry-run          # composer.json normalization (CI-enforced
 (cd tests/Application && yarn install && yarn build:tracking-script)  # Minify the tracking script after editing it (CI checks the committed result is up to date; install first, or a branch switch can leave Encore's older Terser in node_modules)
 ```
 
+All JS tooling (Jest, Playwright, Encore) lives in `tests/Application/package.json` and runs on the Node version in `tests/Application/.nvmrc` (20, the newest `@sylius-ui/frontend` 1.x allows; Yarn refuses to install it on a newer Node), so run `nvm use` there first. There is no `node_modules` at the repo root, so the code outside the test app states where to look: `webpack.config.js` sets `resolve.modules` for the Sylius entries in `vendor/`, and `tests/e2e/support/test.js` resolves `@playwright/test` from the test app.
+
 The test app in `tests/Application` is used by CI for linting and schema validation (needs MySQL via `DATABASE_URL`, `APP_ENV=test`):
 
 ```bash
@@ -71,7 +73,7 @@ Note the distinction between the two `Source` classes: `Matcher\Source` is a val
 
 - Service definitions are XML, split per concern in `src/Resources/config/services/*.xml` and aggregated by `services.xml`. Services only loaded under config conditions live in `services/conditional/`.
 - Interfaces sit next to implementations (`FooInterface` + `Foo`); services are `final` and constructor-injected; Doctrine access goes through `setono/doctrine-orm-trait`'s `ORMTrait` with the resource class name passed as a string parameter (so host apps can override the model class).
-- CI (`.github/workflows/build.yaml`) tests PHP 8.1/8.2 with lowest and highest dependencies against Symfony ~6.4.0 — keep code compatible with both dependency extremes and PHP 8.1 syntax. It also runs the Jest suite on Node 22.
+- CI (`.github/workflows/build.yaml`) tests PHP 8.1/8.2 with lowest and highest dependencies against Symfony ~6.4.0 — keep code compatible with both dependency extremes and PHP 8.1 syntax. The test app runs Sylius ~1.14 and follows [Setono's plugin skeleton](https://github.com/Setono/SyliusPluginSkeleton/tree/1.14.x); keep it in line with that when changing its config. CI runs the Jest suite on the Node version in `tests/Application/.nvmrc`.
 
 ### Backwards compatibility: adding a constructor argument
 

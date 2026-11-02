@@ -205,7 +205,7 @@ jobs:
             -   name: "Setup Node"
                 uses: "actions/setup-node@v4"
                 with:
-                    node-version: "22"
+                    node-version-file: "tests/Application/.nvmrc"
 
             -   name: "Install dependencies"
                 working-directory: "tests/Application"
@@ -253,7 +253,7 @@ jobs:
             -   name: "Setup Node"
                 uses: "actions/setup-node@v4"
                 with:
-                    node-version: "22"
+                    node-version-file: "tests/Application/.nvmrc"
 
             -   name: "Install test application dependencies"
                 working-directory: "tests/Application"
