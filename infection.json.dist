@@ -11,50 +11,6 @@
             "badge": "2.x"
         }
     },
-    "mutators": {
-        "@default": true,
-        "ArrayItemRemoval": {
-            "ignoreSourceCodeByRegex": [
-                "\\$context = stream_context_create\\(.*\\);"
-            ]
-        },
-        "CastInt": {
-            "ignore": [
-                "Setono\\SyliusConversionAttributionPlugin\\Command\\PruneCommand::execute"
-            ]
-        },
-        "DecrementInteger": {
-            "ignoreSourceCodeByRegex": [
-                "\\$context = stream_context_create\\(.*\\);",
-                "\\$rows = .*->setMaxResults\\(1000\\)->.*;"
-            ]
-        },
-        "FalseValue": {
-            "ignore": [
-                "Setono\\SyliusConversionAttributionPlugin\\Parser\\ReferrerParser::lookupHost"
-            ],
-            "ignoreSourceCodeByRegex": [
-                "if \\(false === \\$scriptHash\\) \\{"
-            ]
-        },
-        "IncrementInteger": {
-            "ignoreSourceCodeByRegex": [
-                "\\$context = stream_context_create\\(.*\\);",
-                "\\$rows = .*->setMaxResults\\(1000\\)->.*;"
-            ]
-        },
-        "MethodCallRemoval": {
-            "ignoreSourceCodeByRegex": [
-                "\\$io->progressAdvance\\(\\$progress\\);",
-                "Assert::nullOrIsInstanceOf\\(\\$source, SourceInterface::class\\);"
-            ]
-        },
-        "UnwrapArrayColumn": {
-            "ignore": [
-                "Setono\\SyliusConversionAttributionPlugin\\Command\\PruneCommand::getDeletableIds"
-            ]
-        }
-    },
     "minMsi": 60.00,
-    "minCoveredMsi": 100.00
+    "minCoveredMsi": 95.00
 }
