@@ -104,7 +104,7 @@ final class ReferrerParser implements ReferrerParserInterface
      *     scheme: string,
      *     host: string,
      *     path: string,
-     *     query: string|null,
+     *     query?: string,
      *     fragment?: string,
      *     user?: string,
      *     pass?: string,
@@ -118,7 +118,7 @@ final class ReferrerParser implements ReferrerParserInterface
             return null;
         }
 
-        return array_merge(['query' => null, 'path' => '/'], $parts);
+        return array_merge(['path' => '/'], $parts);
     }
 
     private static function escapePath(string $path): string

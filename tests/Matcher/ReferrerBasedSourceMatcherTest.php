@@ -40,6 +40,32 @@ final class ReferrerBasedSourceMatcherTest extends TestCase
 
     /**
      * @test
+     *
+     * @dataProvider unusableParsedReferrers
+     */
+    public function it_falls_back_to_the_referrer_host_if_the_parsed_referrer_is_unusable(Referrer $parsedReferrer): void
+    {
+        // A custom parser may return a medium without a source, or a source for an invalid referrer
+        $res = $this->matcher($parsedReferrer)
+            ->match(new PageView('https://shop.example/', 'https://www.google.com/'));
+
+        self::assertNotNull($res);
+        self::assertSame('www.google.com', $res->source);
+        self::assertSame('referral', $res->medium);
+    }
+
+    /**
+     * @return iterable<string, array{Referrer}>
+     */
+    public static function unusableParsedReferrers(): iterable
+    {
+        yield 'medium without a source' => [new Referrer(Referrer::MEDIUM_SEARCH)];
+        yield 'invalid with a source' => [new Referrer(Referrer::MEDIUM_INVALID, 'Google')];
+        yield 'unknown with a source' => [new Referrer(Referrer::MEDIUM_UNKNOWN, 'Google')];
+    }
+
+    /**
+     * @test
      */
     public function it_does_not_match_a_referrer_from_the_same_host(): void
     {

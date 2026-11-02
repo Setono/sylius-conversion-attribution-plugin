@@ -18,6 +18,7 @@ use Symfony\Component\Asset\VersionStrategy\VersionStrategyInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -26,6 +27,14 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final class AddJavascriptSubscriberTest extends TestCase
 {
+    /**
+     * @test
+     */
+    public function it_subscribes_to_requests(): void
+    {
+        self::assertSame([KernelEvents::REQUEST => 'addJavascript'], AddJavascriptSubscriber::getSubscribedEvents());
+    }
+
     /**
      * @test
      */

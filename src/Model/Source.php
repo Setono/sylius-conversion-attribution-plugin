@@ -134,8 +134,8 @@ class Source implements SourceInterface
         return sprintf(
             '[%s] %s (%s)',
             $this->createdAt->format('Y-m-d H:i'),
-            (string) $this->source,
-            (string) $this->medium,
+            $this->source ?? '',
+            $this->medium ?? '',
         );
     }
 }
