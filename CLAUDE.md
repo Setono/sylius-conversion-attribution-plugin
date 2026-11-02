@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Sylius plugin (`setono/sylius-conversion-attribution-plugin`) that attributes order conversions to traffic sources (google/facebook ads, referrals, direct, etc.). It is a Symfony bundle, not an application — the runnable Sylius app used for tests lives in `tests/Application`. Requires PHP >= 8.1 (local dev pins 8.1 via `.php-version`), Symfony ^6.4 (not 5.x or 7.x), Sylius 1.x.
+A Sylius plugin (`setono/sylius-conversion-attribution-plugin`) that attributes order conversions to traffic sources (google/facebook ads, referrals, direct, etc.). It is a Symfony bundle, not an application — the runnable Sylius app used for tests lives in `tests/Application`. Requires PHP >= 8.1 (local dev pins 8.1 via `.php-version`), Symfony ^6.4 (not 5.x or 7.x), Twig ^3.21, Sylius 1.x.
 
 ## Commands
 

@@ -60,3 +60,4 @@ If you redefine, decorate or extend these services, update the arguments:
 
 - `symfony/asset` is required (the script's URL is generated through the `assets.packages` service).
 - `symfony/deprecation-contracts` is no longer required.
+- Twig 2 is no longer supported: `twig/twig` ^3.21 is required.

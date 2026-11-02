@@ -29,7 +29,7 @@
         "symfony/http-kernel": "^6.4",
         "symfony/routing": "^6.4",
         "symfony/validator": "^6.4",
-        "twig/twig": "^2.16 || ^3.21",
+        "twig/twig": "^3.21",
         "webmozart/assert": "^1.11"
     },
     "require-dev": {
