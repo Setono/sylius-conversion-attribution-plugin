@@ -7,10 +7,12 @@ namespace Setono\SyliusConversionAttributionPlugin\CacheWarmer;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Symfony\Component\Cache\Adapter\NullAdapter;
-use Symfony\Component\Cache\Adapter\PhpArrayAdapter;
+use Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
+/**
+ * Downloads Snowplow's referer database and builds the referrer database from it
+ */
 final class ReferrersCacheWarmer implements CacheWarmerInterface, LoggerAwareInterface
 {
     private const REFERRERS_URL = 'https://s3-eu-west-1.amazonaws.com/snowplow-hosted-assets/third-party/referer-parser/referers-latest.json';
@@ -18,7 +20,7 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface, LoggerAwareInt
     private LoggerInterface $logger;
 
     public function __construct(
-        private readonly string $phpArrayFile,
+        private readonly ReferrerDatabase $referrerDatabase,
         // Where Snowplow's referer database is downloaded from
         private readonly string $url = self::REFERRERS_URL,
     ) {
@@ -48,29 +50,11 @@ final class ReferrersCacheWarmer implements CacheWarmerInterface, LoggerAwareInt
         }
 
         try {
-            /** @var array<string, array<string, array{domains: list<string>}>> $data */
-            $data = json_decode($json, true, flags: \JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
-            $this->logger->warning('Could not decode the referrers database: {message}', ['message' => $e->getMessage()]);
-
-            return [];
+            $this->referrerDatabase->build($json);
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->warning('Could not build the referrer database: {message}', ['message' => $e->getMessage()]);
         }
 
-        $values = [];
-
-        foreach ($data as $medium => $referrers) {
-            foreach ($referrers as $source => $referrer) {
-                foreach ($referrer['domains'] as $domain) {
-                    $domain = str_replace('/', '|', $domain);
-
-                    $values[$domain] = [
-                        'source' => $source,
-                        'medium' => $medium,
-                    ];
-                }
-            }
-        }
-
-        return (new PhpArrayAdapter($this->phpArrayFile, new NullAdapter()))->warmUp($values);
+        return [];
     }
 }

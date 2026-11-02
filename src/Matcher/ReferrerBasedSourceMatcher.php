@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Matcher;
 
-use Setono\SyliusConversionAttributionPlugin\Parser\Referrer;
-use Setono\SyliusConversionAttributionPlugin\Parser\ReferrerParserInterface;
+use Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabaseInterface;
 
 final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
 {
     public function __construct(
-        private readonly ReferrerParserInterface $referrerParser,
+        private readonly ReferrerDatabaseInterface $referrerDatabase,
+        // The medium of a referral from a site the referrer database has no medium for, or doesn't know
         private readonly string $medium = 'referral',
     ) {
     }
@@ -22,9 +22,9 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
             return null;
         }
 
-        $parsedReferrer = $this->referrerParser->parse($referrer);
-        if (null !== $parsedReferrer->source && !in_array($parsedReferrer->medium, [Referrer::MEDIUM_INVALID, Referrer::MEDIUM_UNKNOWN], true)) {
-            return new Source($parsedReferrer->source, $parsedReferrer->medium);
+        $known = $this->referrerDatabase->lookup($referrer);
+        if (null !== $known) {
+            return null === $known->medium ? new Source($known->source, $this->medium) : $known;
         }
 
         $host = $pageView->referrerHost;

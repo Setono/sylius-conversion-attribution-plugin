@@ -195,7 +195,8 @@ A tracked page view gets its source from the first of these that matches:
 3. The referrer. Search engines, social networks and email providers are looked up in
    [Snowplow's referer database](https://github.com/snowplow-referer-parser/referer-parser), which is
    downloaded when the cache is warmed up (if the download fails, a warning is logged and the lookup
-   is skipped until the next warmup). Any other site becomes its host with the medium `referral`.
+   is skipped until the next warmup). A site the database lists without a medium (e.g. Google Maps)
+   gets the medium `referral`, and any other site becomes its host with the medium `referral`.
    Referrers from your own host are ignored.
 4. Otherwise the source is `direct`.
 
