@@ -13,6 +13,8 @@ use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Command\PruneCommand;
 use Setono\SyliusConversionAttributionPlugin\Tests\Command\Fixture\PrunableSource;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class PruneCommandTest extends TestCase
@@ -46,9 +48,9 @@ final class PruneCommandTest extends TestCase
         $this->em->clear();
 
         $tester = new CommandTester($this->createCommand(180));
-        $exitCode = $tester->execute([]);
+        $tester->execute([]);
 
-        self::assertSame(0, $exitCode);
+        $tester->assertCommandIsSuccessful();
         self::assertStringContainsString('Pruning old conversion attribution sources', $tester->getDisplay());
         // the progress bar is finished, followed by a blank line
         self::assertMatchesRegularExpression('# 1/1 \[.+\] 100%\n\n$#u', $tester->getDisplay());
@@ -73,8 +75,9 @@ final class PruneCommandTest extends TestCase
         $this->em->clear();
 
         $tester = new CommandTester($this->createCommand(180));
+        $tester->execute([]);
 
-        self::assertSame(0, $tester->execute([]));
+        $tester->assertCommandIsSuccessful();
         self::assertCount(1, $this->em->getRepository(PrunableSource::class)->findAll());
         self::assertStringContainsString('Pruning old conversion attribution sources', $tester->getDisplay());
         self::assertStringContainsString('[OK] No sources to prune', $tester->getDisplay());
@@ -92,7 +95,10 @@ final class PruneCommandTest extends TestCase
         $keptId = $kept->getId();
         $this->em->clear();
 
-        (new CommandTester($this->createCommand()))->execute([]);
+        $tester = new CommandTester($this->createCommand());
+        $tester->execute([]);
+
+        $tester->assertCommandIsSuccessful();
 
         $remaining = $this->em->getRepository(PrunableSource::class)->findAll();
         self::assertCount(1, $remaining);
@@ -108,7 +114,10 @@ final class PruneCommandTest extends TestCase
         $this->em->flush();
         $this->em->clear();
 
-        (new CommandTester($this->createCommand(0)))->execute([]);
+        $tester = new CommandTester($this->createCommand(0));
+        $tester->execute([]);
+
+        $tester->assertCommandIsSuccessful();
 
         self::assertCount(0, $this->em->getRepository(PrunableSource::class)->findAll());
     }
@@ -123,15 +132,22 @@ final class PruneCommandTest extends TestCase
         $this->createCommand(-1);
     }
 
-    private function createCommand(?int $daysToKeep = null): PruneCommand
+    private function createCommand(?int $daysToKeep = null): Command
     {
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($this->em);
 
         // PrunableSource is a deliberately minimal stand-in (only id + createdAt) for a real source entity
         /** @psalm-suppress InvalidArgument */
-        return null === $daysToKeep
+        $command = null === $daysToKeep
             ? new PruneCommand($registry, PrunableSource::class)
             : new PruneCommand($registry, PrunableSource::class, $daysToKeep);
+
+        // Look the command up by its name, like the console does, so the name is tested too. Executing it
+        // needs no kernel: PruneCommandRegistrationTest checks that the plugin registers it in an application
+        $application = new Application();
+        $application->add($command);
+
+        return $application->find('setono:sylius-conversion-attribution:prune');
     }
 }
