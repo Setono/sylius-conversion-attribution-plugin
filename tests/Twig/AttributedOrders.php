@@ -4,59 +4,64 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Twig;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\Order;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\StoredAttribution;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\InMemoryEntityManager;
+use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
+use Setono\SyliusConversionAttributionPlugin\Tests\Application\Kernel;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
 use Setono\SyliusConversionAttributionPlugin\Twig\Runtime;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Twig\RuntimeLoader\FactoryRuntimeLoader;
 
 /**
- * Lets the --DATA-- sections of Twig integration test fixtures create orders, and their attributions, in an
- * in-memory database that the plugin's Twig runtime reads from
+ * Boots the test application for Twig integration tests, so the --DATA-- sections of their fixtures can
+ * create orders and attributions in its database, and the plugin's Twig runtime reads them from there
  */
 trait AttributedOrders
 {
-    private static EntityManagerInterface $em;
+    use PageViewsAndOrders;
+
+    private static ?Kernel $kernel = null;
 
     protected function setUp(): void
     {
-        self::$em = InMemoryEntityManager::create();
+        self::$kernel = new Kernel('test', false);
+        self::$kernel->boot();
+    }
+
+    protected function tearDown(): void
+    {
+        self::$kernel?->shutdown();
+        self::$kernel = null;
     }
 
     /**
+     * An order completed on 2026-10-26 at noon, attributed if $attribution is given
+     *
      * @param array{source: string, medium?: string, campaign?: string, referrer?: string, landingPage?: string, trackedAt?: string}|null $attribution
      */
-    public static function order(?string $clientId, ?array $attribution = null): Order
+    public static function attributedOrder(?string $clientId, ?array $attribution = null): OrderInterface
     {
-        $order = Order::completed($clientId, new \DateTimeImmutable('2026-10-26 12:00:00'));
-        self::$em->persist($order);
-
+        $order = self::order($clientId, new \DateTimeImmutable('2026-10-26 12:00:00'));
         if (null !== $attribution) {
-            $storedAttribution = new StoredAttribution();
-            $storedAttribution->setOrder($order);
-            $storedAttribution->setSource($attribution['source']);
-            $storedAttribution->setMedium($attribution['medium'] ?? null);
-            $storedAttribution->setCampaign($attribution['campaign'] ?? null);
-            $storedAttribution->setReferrer($attribution['referrer'] ?? null);
-            $storedAttribution->setLandingPage($attribution['landingPage'] ?? null);
-            $storedAttribution->setTrackedAt(new \DateTimeImmutable($attribution['trackedAt'] ?? '2026-10-26 11:00:00'));
-            self::$em->persist($storedAttribution);
+            self::attribution($order, $attribution['source'], $attribution);
         }
-
-        self::$em->flush();
 
         return $order;
     }
 
+    protected static function container(): ContainerInterface
+    {
+        self::assertNotNull(self::$kernel);
+        $container = self::$kernel->getContainer()->get('test.service_container');
+        self::assertInstanceOf(ContainerInterface::class, $container);
+
+        return $container;
+    }
+
     protected function getRuntimeLoaders(): array
     {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn(self::$em);
+        $runtime = self::container()->get(Runtime::class);
+        self::assertInstanceOf(Runtime::class, $runtime);
 
-        return [new FactoryRuntimeLoader([
-            Runtime::class => static fn (): Runtime => new Runtime($registry, StoredAttribution::class),
-        ])];
+        return [new FactoryRuntimeLoader([Runtime::class => static fn (): Runtime => $runtime])];
     }
 }

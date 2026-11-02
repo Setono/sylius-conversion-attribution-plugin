@@ -4,37 +4,31 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Command;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use PHPUnit\Framework\TestCase;
-use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributor;
+use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface;
 use Setono\SyliusConversionAttributionPlugin\Command\BackfillCommand;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\Order;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\StoredAttribution;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\StoredAttributionFactory;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\TrackedSource;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\InMemoryEntityManager;
-use Symfony\Component\Console\Application;
+use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-final class BackfillCommandTest extends TestCase
+final class BackfillCommandTest extends KernelTestCase
 {
-    private EntityManagerInterface $em;
-
-    protected function setUp(): void
-    {
-        $this->em = InMemoryEntityManager::create();
-    }
+    use PageViewsAndOrders;
 
     /**
      * @test
      */
     public function it_attributes_completed_orders_as_of_their_checkout(): void
     {
-        $order = $this->order('client', '2026-10-01 12:00:00');
-        $this->track('client', 'google', '2026-09-30 12:00:00');
+        $order = self::order('client', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        self::trackPageView('client', 'google', new \DateTimeImmutable('2026-09-30 12:00:00'));
         // after the checkout, so it must not take the credit
-        $this->track('client', 'facebook', '2026-10-05 12:00:00');
+        self::trackPageView('client', 'facebook', new \DateTimeImmutable('2026-10-05 12:00:00'));
 
         $tester = $this->execute();
 
@@ -48,22 +42,16 @@ final class BackfillCommandTest extends TestCase
      */
     public function it_skips_orders_that_cannot_or_need_not_be_attributed(): void
     {
-        $attributed = $this->order('attributed', '2026-10-01 12:00:00');
-        $this->track('attributed', 'google', '2026-09-30 12:00:00');
-        $existing = new StoredAttribution();
-        $existing->setOrder($attributed);
-        $existing->setSource('newsletter');
-        $existing->setTrackedAt(new \DateTimeImmutable('2026-09-29 12:00:00'));
-        $this->em->persist($existing);
+        $attributed = self::order('attributed', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        self::trackPageView('attributed', 'google', new \DateTimeImmutable('2026-09-30 12:00:00'));
+        self::attribution($attributed, 'newsletter');
 
-        $untracked = $this->order(null, '2026-10-01 12:00:00');
+        $untracked = self::order(null, new \DateTimeImmutable('2026-10-01 12:00:00'));
 
-        $inCheckout = $this->order('in-checkout', '2026-10-01 12:00:00');
-        $inCheckout->setCheckoutCompletedAt(null);
-        $this->track('in-checkout', 'google', '2026-09-30 12:00:00');
+        $inCheckout = self::order('in-checkout', null);
+        self::trackPageView('in-checkout', 'google', new \DateTimeImmutable('-1 hour'));
 
-        $withoutPageViews = $this->order('without-page-views', '2026-10-01 12:00:00');
-        $this->em->flush();
+        $withoutPageViews = self::order('without-page-views', new \DateTimeImmutable('2026-10-01 12:00:00'));
 
         $tester = $this->execute();
 
@@ -81,18 +69,18 @@ final class BackfillCommandTest extends TestCase
      */
     public function it_attributes_orders_in_batches(): void
     {
-        $first = $this->order('first', '2026-10-01 12:00:00');
-        $this->track('first', 'google', '2026-09-30 12:00:00');
+        $first = self::order('first', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        self::trackPageView('first', 'google', new \DateTimeImmutable('2026-09-30 12:00:00'));
         // stays without an attribution, so the next batch must not start over with it
-        $this->order('without-page-views', '2026-10-01 12:00:00');
-        $third = $this->order('third', '2026-10-01 12:00:00');
-        $this->track('third', 'facebook', '2026-09-30 12:00:00');
+        self::order('without-page-views', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        $third = self::order('third', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        self::trackPageView('third', 'facebook', new \DateTimeImmutable('2026-09-30 12:00:00'));
 
         $tester = $this->execute(batchSize: 2);
 
         $tester->assertCommandIsSuccessful();
         // each batch is flushed and cleared, so a large backfill doesn't hold every order in memory
-        self::assertSame(0, $this->em->getUnitOfWork()->size());
+        self::assertSame(0, self::entityManager()->getUnitOfWork()->size());
         self::assertSame(['google'], $this->attributedSources($first));
         self::assertSame(['facebook'], $this->attributedSources($third));
         // the progress bar is finished, followed by a blank line and the result
@@ -111,48 +99,48 @@ final class BackfillCommandTest extends TestCase
         self::assertStringContainsString('[OK] No orders to attribute', $tester->getDisplay());
     }
 
-    private function order(?string $clientId, string $checkoutCompletedAt): Order
+    protected static function container(): ContainerInterface
     {
-        $order = Order::completed($clientId, new \DateTimeImmutable($checkoutCompletedAt));
-        $this->em->persist($order);
-        $this->em->flush();
-
-        return $order;
-    }
-
-    private function track(string $clientId, string $source, string $createdAt): void
-    {
-        $this->em->persist(TrackedSource::at(new \DateTimeImmutable($createdAt), $clientId, $source));
-        $this->em->flush();
+        return self::getContainer();
     }
 
     /**
      * @return list<string|null>
      */
-    private function attributedSources(Order $order): array
+    private function attributedSources(OrderInterface $order): array
     {
-        $this->em->clear();
+        self::entityManager()->clear();
 
-        return array_map(
-            static fn (StoredAttribution $attribution): ?string => $attribution->getSource(),
-            $this->em->getRepository(StoredAttribution::class)->findBy(['order' => $order->getId()]),
-        );
+        return array_map(static fn (AttributionInterface $attribution): ?string => $attribution->getSource(), self::attributionsOf($order));
     }
 
-    private function execute(int $batchSize = 100): CommandTester
+    /**
+     * Runs the command as the application registers it or, given a batch size, as built with it
+     */
+    private function execute(?int $batchSize = null): CommandTester
     {
-        $this->em->clear();
+        $name = 'setono:sylius-conversion-attribution:backfill';
 
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($this->em);
+        if (null === $batchSize) {
+            // getContainer() boots the kernel, unless the test already did
+            self::getContainer();
+            $command = (new Application(self::$kernel))->find($name);
+        } else {
+            $container = self::getContainer();
+            $orderAttributor = $container->get(OrderAttributorInterface::class);
+            self::assertInstanceOf(OrderAttributorInterface::class, $orderAttributor);
+            $orderClass = self::modelClass('sylius.model.order.class', OrderInterface::class);
+            $attributionClass = self::modelClass('setono_sylius_conversion_attribution.model.attribution.class', AttributionInterface::class);
 
-        $orderAttributor = new OrderAttributor($registry, new StoredAttributionFactory(), TrackedSource::class, 30);
+            $doctrine = $container->get('doctrine');
+            self::assertInstanceOf(ManagerRegistry::class, $doctrine);
 
-        // Look the command up by its name, like the console does, so the name is tested too
-        $application = new Application();
-        $application->add(new BackfillCommand($registry, $orderAttributor, Order::class, StoredAttribution::class, $batchSize));
+            $application = new ConsoleApplication();
+            $application->add(new BackfillCommand($doctrine, $orderAttributor, $orderClass, $attributionClass, $batchSize));
+            $command = $application->find($name);
+        }
 
-        $tester = new CommandTester($application->find('setono:sylius-conversion-attribution:backfill'));
+        $tester = new CommandTester($command);
         $tester->execute([]);
 
         return $tester;

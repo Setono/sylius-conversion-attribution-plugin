@@ -3,6 +3,6 @@
 --TEMPLATE--
 {{ setono_sylius_conversion_attribution(order) is null ? 'none' }}
 --DATA--
-return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\ExtensionTest::order('client')]
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\ExtensionTest::attributedOrder('client')]
 --EXPECT--
 none

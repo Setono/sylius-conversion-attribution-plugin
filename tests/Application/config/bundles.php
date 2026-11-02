@@ -63,4 +63,5 @@ return [
     Setono\ClientBundle\SetonoClientBundle::class => ['all' => true],
     Setono\BotDetectionBundle\SetonoBotDetectionBundle::class => ['all' => true],
     Setono\TagBagBundle\SetonoTagBagBundle::class => ['all' => true],
+    DAMA\DoctrineTestBundle\DAMADoctrineTestBundle::class => ['test' => true],
 ];

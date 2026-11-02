@@ -16,7 +16,7 @@ composer phpunit           # Run all tests
 vendor/bin/phpunit tests/Matcher/QueryParameterBasedSourceMatcherTest.php   # Single test file
 vendor/bin/phpunit --filter it_matches                                      # Single test method
 vendor/bin/rector process --dry-run   # Rector (CI runs this, non-blocking)
-vendor/bin/infection                  # Mutation testing (minCoveredMsi: 100)
+vendor/bin/infection                  # Mutation testing (minCoveredMsi: 95); warm the test cache first, see below
 vendor/bin/composer-dependency-analyser  # Dependency analysis (CI-enforced)
 composer normalize --dry-run          # composer.json normalization (CI-enforced)
 (cd tests/Application && yarn install && yarn test)  # Jest tests for the tracking script (tests/js, CI-enforced)
@@ -46,6 +46,14 @@ The tests run as a regular browser: `tests/e2e/support/test.js` overrides Playwr
 
 Note: `phpunit.xml.dist` bootstraps `tests/Application/config/bootstrap.php`, and `tests/Referrer/ReferrerDatabaseFunctionalTest.php` downloads the real referrer database, so tests need `composer install` to have run and network access for that test.
 
+The tests that touch the database are kernel tests (`KernelTestCase`, or a booted test kernel for the Twig integration tests) against the test application's database, and dama/doctrine-test-bundle (an extension in `phpunit.xml.dist`) rolls back what each test writes. So the test database must exist with the schema before `composer phpunit` or Infection runs; CI creates it in the unit, mutation and coverage jobs:
+
+```bash
+(cd tests/Application && APP_ENV=test bin/console doctrine:database:create && APP_ENV=test bin/console doctrine:schema:create)
+```
+
+`phpunit.xml.dist` sets `APP_DEBUG=0`, so the tests use the compiled test container without checking for changed files (and mutation testing doesn't rebuild it per mutant). After changing service definitions, Doctrine mappings or translations, clear `tests/Application/var/cache/test` (or run `APP_DEBUG=0 bin/console cache:warmup` there, as CI does before Infection). Locally, point the test environment at a database of your own in the gitignored `tests/Application/.env.test.local` (`DATABASE_URL=...`).
+
 ## Architecture
 
 The plugin tracks *where a visitor came from* and later ties that to the order they place. The flow has two halves:
@@ -73,7 +81,7 @@ Note the distinction between the two `Source` classes: `Matcher\Source` is a val
 
 - Service definitions are XML, split per concern in `src/Resources/config/services/*.xml` and aggregated by `services.xml`. Services only loaded under config conditions live in `services/conditional/`.
 - Interfaces sit next to implementations (`FooInterface` + `Foo`); services are `final` and constructor-injected; Doctrine access goes through `setono/doctrine-orm-trait`'s `ORMTrait` with the resource class name passed as a string parameter (so host apps can override the model class).
-- Tests that need a database use `tests/Doctrine/InMemoryEntityManager.php`: in-memory SQLite with the plugin's real XML mapping plus fixture entities in `tests/Doctrine/Fixture/` (a minimal `Order` that Sylius' order interface resolves to, `TrackedSource`, `StoredAttribution`).
+- Tests that need a database boot the test application (Symfony's `KernelTestCase`; commands are found by name through the kernel's console `Application` and run with `CommandTester`) and create their data through the application's own factories with `tests/Support/PageViewsAndOrders.php`. dama/doctrine-test-bundle rolls each test back.
 - Twig tests extend `\Twig\Test\IntegrationTestCase`, with `.test` fixtures under `tests/Twig/Fixtures/`. `AttributionTemplateTest` adds the plugin's real admin template to each fixture's templates, so fixtures include it by name instead of copying it.
 - CI (`.github/workflows/build.yaml`) tests PHP 8.1/8.2 with lowest and highest dependencies against Symfony ~6.4.0 — keep code compatible with both dependency extremes and PHP 8.1 syntax. The test app runs Sylius ~1.14 and follows [Setono's plugin skeleton](https://github.com/Setono/SyliusPluginSkeleton/tree/1.14.x); keep it in line with that when changing its config. CI runs the Jest suite on the Node version in `tests/Application/.nvmrc`.
 

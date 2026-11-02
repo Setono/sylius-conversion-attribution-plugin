@@ -4,26 +4,24 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Attribution;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
-use PHPUnit\Framework\TestCase;
-use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributor;
+use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\Order;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\StoredAttribution;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\StoredAttributionFactory;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\Fixture\TrackedSource;
-use Setono\SyliusConversionAttributionPlugin\Tests\Doctrine\InMemoryEntityManager;
+use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-final class OrderAttributorTest extends TestCase
+/**
+ * Runs against the test application with its default lookback window of 30 days
+ */
+final class OrderAttributorTest extends KernelTestCase
 {
-    private EntityManagerInterface $em;
+    use PageViewsAndOrders;
 
     private \DateTimeImmutable $completedAt;
 
     protected function setUp(): void
     {
-        $this->em = InMemoryEntityManager::create();
         $this->completedAt = new \DateTimeImmutable('2026-10-26 12:00:00');
     }
 
@@ -33,18 +31,19 @@ final class OrderAttributorTest extends TestCase
     public function it_attributes_an_order_to_the_newest_non_direct_page_view_before_checkout(): void
     {
         $this->track('-2 hours', 'google');
-        $facebook = $this->track('-1 hour', 'facebook');
-        $facebook->setMedium('cpc');
-        $facebook->setCampaign('fall');
-        $facebook->setReferrer('https://www.facebook.com/');
-        $facebook->setPage('https://shop.example/products/shoes');
+        $this->track('-1 hour', 'facebook', details: [
+            'medium' => 'cpc',
+            'campaign' => 'fall',
+            'referrer' => 'https://www.facebook.com/',
+            'page' => 'https://shop.example/products/shoes',
+        ]);
         $this->track('-30 minutes', 'direct');
         // the customer returning from the payment gateway after completing the order, and a later visit
         $this->track('+5 minutes', 'paypal.com');
         $this->track('+3 days', 'newsletter');
         // another visitor
         $this->track('-10 minutes', 'bing', 'someone-else');
-        $order = $this->order('client');
+        $order = self::order('client', $this->completedAt);
 
         $attribution = $this->attribute($order);
 
@@ -62,30 +61,29 @@ final class OrderAttributorTest extends TestCase
     /**
      * @test
      */
-    public function it_credits_the_newest_page_view_even_if_it_was_stored_first(): void
+    public function it_persists_the_attribution(): void
     {
-        $this->track('-1 hour', 'facebook');
-        $this->track('-2 hours', 'google');
+        $this->track('-1 hour', 'google');
+        $order = self::order('client', $this->completedAt);
 
-        self::assertSame('facebook', $this->attribute($this->order('client'))?->getSource());
+        $this->attribute($order);
+        self::entityManager()->flush();
+        self::entityManager()->clear();
+
+        $stored = self::attributionsOf($order);
+        self::assertCount(1, $stored);
+        self::assertSame('google', $stored[0]->getSource());
     }
 
     /**
      * @test
      */
-    public function it_persists_the_attribution(): void
+    public function it_credits_the_newest_page_view_even_if_it_was_stored_first(): void
     {
-        $this->track('-1 hour', 'google');
-        $order = $this->order('client');
+        $this->track('-1 hour', 'facebook');
+        $this->track('-2 hours', 'google');
 
-        $this->attribute($order);
-        $this->em->flush();
-        $this->em->clear();
-
-        $stored = $this->em->getRepository(StoredAttribution::class)->findAll();
-        self::assertCount(1, $stored);
-        self::assertSame('google', $stored[0]->getSource());
-        self::assertSame($order->getId(), $stored[0]->getOrder()?->getId());
+        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))?->getSource());
     }
 
     /**
@@ -93,10 +91,10 @@ final class OrderAttributorTest extends TestCase
      */
     public function it_attributes_an_order_without_a_non_direct_page_view_to_the_newest_direct_one(): void
     {
-        $this->track('-2 days', 'direct')->setPage('https://shop.example/');
-        $this->track('-1 hour', 'direct')->setPage('https://shop.example/products/shoes');
+        $this->track('-2 days', 'direct', details: ['page' => 'https://shop.example/']);
+        $this->track('-1 hour', 'direct', details: ['page' => 'https://shop.example/products/shoes']);
 
-        $attribution = $this->attribute($this->order('client'));
+        $attribution = $this->attribute(self::order('client', $this->completedAt));
 
         self::assertNotNull($attribution);
         self::assertTrue($attribution->isDirect());
@@ -111,7 +109,7 @@ final class OrderAttributorTest extends TestCase
         $this->track('-1 hour', 'google');
         $this->track('+0 seconds', 'facebook');
 
-        self::assertSame('facebook', $this->attribute($this->order('client'))?->getSource());
+        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))?->getSource());
     }
 
     /**
@@ -123,7 +121,18 @@ final class OrderAttributorTest extends TestCase
         $this->track('-30 days', 'facebook');
         $this->track('-1 hour', 'direct');
 
-        self::assertSame('facebook', $this->attribute($this->order('client'))?->getSource());
+        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))?->getSource());
+    }
+
+    /**
+     * @test
+     */
+    public function it_attributes_an_order_being_completed_as_of_now(): void
+    {
+        self::trackPageView('client', 'google', new \DateTimeImmutable('-30 days -1 hour'));
+        self::trackPageView('client', 'facebook', new \DateTimeImmutable('-1 hour'));
+
+        self::assertSame('facebook', $this->attribute(self::order('client', null))?->getSource());
     }
 
     /**
@@ -133,24 +142,11 @@ final class OrderAttributorTest extends TestCase
     {
         $this->track('-30 days -1 second', 'google');
         $this->track('-1 hour', 'facebook', 'someone-else');
+        $order = self::order('client', $this->completedAt);
 
-        self::assertNull($this->attribute($this->order('client')));
-        $this->em->flush();
-        self::assertSame([], $this->em->getRepository(StoredAttribution::class)->findAll());
-    }
-
-    /**
-     * @test
-     */
-    public function it_attributes_an_order_being_completed_as_of_now(): void
-    {
-        $this->em->persist(TrackedSource::at(new \DateTimeImmutable('-30 days -1 hour'), source: 'google'));
-        $this->em->persist(TrackedSource::at(new \DateTimeImmutable('-1 hour'), source: 'facebook'));
-        $order = Order::inCheckout('client');
-        $this->em->persist($order);
-        $this->em->flush();
-
-        self::assertSame('facebook', $this->attribute($order)?->getSource());
+        self::assertNull($this->attribute($order));
+        self::entityManager()->flush();
+        self::assertSame([], self::attributionsOf($order));
     }
 
     /**
@@ -160,39 +156,29 @@ final class OrderAttributorTest extends TestCase
     {
         $this->track('-1 hour', 'google');
 
-        self::assertNull($this->attribute($this->order(null)));
+        self::assertNull($this->attribute(self::order(null, $this->completedAt)));
     }
 
-    private function track(string $relativeToCheckout, string $source, string $clientId = 'client'): TrackedSource
+    protected static function container(): ContainerInterface
     {
-        $createdAt = $this->completedAt->modify($relativeToCheckout);
-        self::assertNotFalse($createdAt);
-
-        $trackedSource = TrackedSource::at($createdAt, $clientId, $source);
-        $this->em->persist($trackedSource);
-        $this->em->flush();
-
-        return $trackedSource;
+        return self::getContainer();
     }
 
-    private function order(?string $clientId): Order
+    /**
+     * @param array{medium?: string, campaign?: string, referrer?: string, page?: string} $details
+     */
+    private function track(string $relativeToCheckout, string $source, string $clientId = 'client', array $details = []): void
     {
-        $order = Order::completed($clientId, $this->completedAt);
-        $this->em->persist($order);
-        $this->em->flush();
+        $trackedAt = $this->completedAt->modify($relativeToCheckout);
+        self::assertNotFalse($trackedAt);
 
-        return $order;
+        self::trackPageView($clientId, $source, $trackedAt, $details);
     }
 
-    private function attribute(Order $order): ?AttributionInterface
+    private function attribute(OrderInterface $order): ?AttributionInterface
     {
-        // Changes to tracked sources made after track() must reach the database before the lookup
-        $this->em->flush();
-
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($this->em);
-
-        $attributor = new OrderAttributor($registry, new StoredAttributionFactory(), TrackedSource::class, 30);
+        $attributor = self::getContainer()->get(OrderAttributorInterface::class);
+        self::assertInstanceOf(OrderAttributorInterface::class, $attributor);
 
         return $attributor->attribute($order);
     }
