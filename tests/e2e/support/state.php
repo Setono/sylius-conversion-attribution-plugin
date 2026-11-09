@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-// Prints the sources tracked for a client id and the client's completed orders as JSON, so the
-// end-to-end tests can assert what the browser's page views ended up as in the database
+// Prints the sources tracked for a client id, the client's completed orders and their attributions as JSON, so
+// the end-to-end tests can assert what the browser's page views and checkout ended up as in the database
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -25,7 +25,8 @@ assert($em instanceof EntityManagerInterface);
 
 $sourceClass = $container->getParameter('setono_sylius_conversion_attribution.model.source.class');
 $orderClass = $container->getParameter('sylius.model.order.class');
-assert(is_string($sourceClass) && is_string($orderClass));
+$attributionClass = $container->getParameter('setono_sylius_conversion_attribution.model.attribution.class');
+assert(is_string($sourceClass) && is_string($orderClass) && is_string($attributionClass));
 
 $clientId = $argv[1] ?? '';
 
@@ -39,4 +40,9 @@ $orders = $em->createQuery(sprintf(
     $orderClass,
 ))->setParameter('clientId', $clientId)->getArrayResult();
 
-echo json_encode(['sources' => $sources, 'orders' => $orders], \JSON_THROW_ON_ERROR);
+$attributions = $em->createQuery(sprintf(
+    'SELECT IDENTITY(a.order) AS orderId, a.source, a.medium, a.campaign, a.landingPage FROM %s a JOIN a.order o WHERE o.clientId = :clientId ORDER BY a.id',
+    $attributionClass,
+))->setParameter('clientId', $clientId)->getArrayResult();
+
+echo json_encode(['sources' => $sources, 'orders' => $orders, 'attributions' => $attributions], \JSON_THROW_ON_ERROR);

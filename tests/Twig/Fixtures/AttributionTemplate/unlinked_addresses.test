@@ -1,0 +1,31 @@
+--TEST--
+The box only links http(s) addresses
+--TEMPLATE--
+{% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
+--DATA--
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\AttributionTemplateTest::attributedOrder('client', ['source' => 'google', 'referrer' => 'javascript:alert(1)', 'landingPage' => 'JavaScript:alert(2)'])]
+--EXPECT--
+<div style="margin: 1em 0">
+    <h4 class="ui attached styled header top">Attribution</h4>
+    <div class="ui attached segment">
+        The last non-direct visit before checkout was from <strong>google</strong>. The details are below.
+        <table class="ui fixed very basic table">
+            <tr>
+                <td><strong>Source</strong></td>
+                <td>google</td>
+            </tr>
+            <tr>
+                <td><strong>Referrer</strong></td>
+                <td class="single line">javascript:alert(1)</td>
+            </tr>
+            <tr>
+                <td><strong>Landing page</strong></td>
+                <td class="single line">JavaScript:alert(2)</td>
+            </tr>
+            <tr>
+                <td><strong>When</strong></td>
+                <td>2026-10-26 11:00</td>
+            </tr>
+        </table>
+    </div>
+</div>

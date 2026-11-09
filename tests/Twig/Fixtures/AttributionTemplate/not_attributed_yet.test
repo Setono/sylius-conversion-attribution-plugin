@@ -1,0 +1,13 @@
+--TEST--
+The box tells when a tracked order hasn't been attributed yet
+--TEMPLATE--
+{% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
+--DATA--
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\AttributionTemplateTest::attributedOrder('client')]
+--EXPECT--
+<div style="margin: 1em 0">
+    <h4 class="ui attached styled header top">Attribution</h4>
+    <div class="ui attached segment">
+        This order has not been attributed yet. Orders are attributed by a scheduled command shortly after checkout.
+    </div>
+</div>

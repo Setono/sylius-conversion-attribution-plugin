@@ -7,7 +7,7 @@
         </service>
 
         <service id="Setono\SyliusConversionAttributionPlugin\Twig\Runtime">
-            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Provider\OrderAttributionProviderInterface"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Repository\AttributionRepositoryInterface"/>
 
             <tag name="twig.runtime"/>
         </service>

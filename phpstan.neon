@@ -24,3 +24,13 @@ parameters:
 
     reportUnmatchedIgnoredErrors: false
     treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        # The plugin types associations against Sylius' interfaces, which Doctrine resolves to the host's
+        # entity (resolve_target_entities), so PHPStan sees the test application's Order as the only class the
+        # column can hold. A plugin can't name the host's class; doctrine:schema:validate in CI checks the
+        # mapping itself
+        -
+            identifier: doctrine.associationType
+            message: '#type mapping mismatch: property can contain .+ but database expects#'
+            path: src/Model/Attribution.php

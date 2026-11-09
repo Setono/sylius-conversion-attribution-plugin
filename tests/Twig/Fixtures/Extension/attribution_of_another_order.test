@@ -1,0 +1,11 @@
+--TEST--
+"setono_sylius_conversion_attribution" returns the attribution of the given order only
+--TEMPLATE--
+{{ setono_sylius_conversion_attribution(order).source }}
+--DATA--
+return [
+    'other' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\ExtensionTest::attributedOrder('other-client', ['source' => 'facebook']),
+    'order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\ExtensionTest::attributedOrder('client', ['source' => 'google']),
+]
+--EXPECT--
+google

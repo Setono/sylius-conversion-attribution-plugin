@@ -182,7 +182,6 @@ final class TrackActionTest extends TestCase
             Validation::createValidatorBuilder()
                 ->addXmlMapping(__DIR__ . '/../../../src/Resources/config/validation/Source.xml')
                 ->getValidator(),
-            'direct',
         );
     }
 

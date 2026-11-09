@@ -23,6 +23,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
          *     javascript: array{enabled: bool},
          *     query_parameters: array<string, array{enabled: bool, matches: list<string>, source: ?string, medium: ?string, campaign: ?string}>,
          *     session_timeout: int,
+         *     lookback_window: int,
          *     resources: array<string, mixed>
          * } $config
          */
@@ -32,8 +33,8 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         $container->setParameter('setono_sylius_conversion_attribution.javascript.enabled', $config['javascript']['enabled']);
         $container->setParameter('setono_sylius_conversion_attribution.query_parameters', array_filter($config['query_parameters'], static fn (array $queryParameter): bool => $queryParameter['enabled']));
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
+        $container->setParameter('setono_sylius_conversion_attribution.lookback_window', $config['lookback_window']);
         $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
-        $container->setParameter('setono_sylius_conversion_attribution.source.default', 'direct');
 
         $loader->load('services.xml');
 

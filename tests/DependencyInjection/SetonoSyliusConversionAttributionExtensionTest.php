@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\DependencyInjection;
 
 use Matthias\SymfonyDependencyInjectionTest\PhpUnit\AbstractExtensionTestCase;
+use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface;
+use Setono\SyliusConversionAttributionPlugin\Command\AttributeCommand;
 use Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackAction;
 use Setono\SyliusConversionAttributionPlugin\DependencyInjection\SetonoSyliusConversionAttributionExtension;
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber;
+use Setono\SyliusConversionAttributionPlugin\Model\Attribution;
+use Setono\SyliusConversionAttributionPlugin\Repository\AttributionRepository;
+use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepository;
 use Setono\TagBagBundle\SetonoTagBagBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Component\Config\Resource\FileResource;
@@ -33,14 +38,20 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
 
         $this->load([
             'session_timeout' => 3600,
+            'lookback_window' => 60,
         ]);
 
         $this->assertContainerBuilderHasService(TrackAction::class);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.javascript.enabled', true);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.session_timeout', 3600);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
-        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.source.default', 'direct');
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.model.source.class');
+        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.lookback_window', 60);
+        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.model.attribution.class', Attribution::class);
+        $this->assertContainerBuilderHasService(OrderAttributorInterface::class);
+        $this->assertContainerBuilderHasService(AttributeCommand::class);
+        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.repository.attribution.class', AttributionRepository::class);
+        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.repository.source.class', SourceRepository::class);
     }
 
     /**

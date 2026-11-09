@@ -15,7 +15,7 @@ final class Extension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('setono_sylius_conversion_attribution_last_non_direct', [Runtime::class, 'getLastNonDirect']),
+            new TwigFunction('setono_sylius_conversion_attribution', [Runtime::class, 'getAttribution']),
         ];
     }
 }

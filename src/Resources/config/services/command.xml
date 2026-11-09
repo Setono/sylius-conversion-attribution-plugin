@@ -2,9 +2,19 @@
 <container xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://symfony.com/schema/dic/services"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="Setono\SyliusConversionAttributionPlugin\Command\PruneCommand">
+        <service id="Setono\SyliusConversionAttributionPlugin\Command\AttributeCommand">
             <argument type="service" id="doctrine"/>
-            <argument>%setono_sylius_conversion_attribution.model.source.class%</argument>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Repository\AttributionRepositoryInterface"/>
+            <argument type="service" id="lock.factory"/>
+            <argument>%setono_sylius_conversion_attribution.lookback_window%</argument>
+
+            <tag name="console.command"/>
+        </service>
+
+        <service id="Setono\SyliusConversionAttributionPlugin\Command\PruneCommand">
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Repository\SourceRepositoryInterface"/>
+            <argument>%setono_sylius_conversion_attribution.lookback_window%</argument>
 
             <tag name="console.command"/>
         </service>
