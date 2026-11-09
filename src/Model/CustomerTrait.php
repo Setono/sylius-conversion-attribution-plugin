@@ -13,6 +13,7 @@ trait CustomerTrait
      *
      * @var list<string>
      */
+    #[ORM\Column(type: 'json', nullable: true)]
     protected ?array $clientIds = [];
 
     /**

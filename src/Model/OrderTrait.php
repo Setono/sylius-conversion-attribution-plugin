@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 trait OrderTrait
 {
     /** @ORM\Column(type="string", nullable=true) */
+    #[ORM\Column(type: 'string', nullable: true)]
     protected ?string $clientId = null;
 
     public function getClientId(): ?string
