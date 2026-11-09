@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Attribution;
 
 use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\CustomerInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepositoryInterface;
@@ -32,8 +33,14 @@ final class OrderAttributor implements OrderAttributorInterface
         $attribution = $this->attributionFactory->createNew();
         $attribution->setOrder($order);
 
+        $clientIds = [$clientId];
+        $customer = $order->getCustomer();
+        if ($customer instanceof CustomerInterface) {
+            array_push($clientIds, ...$customer->getClientIds());
+        }
+
         $windowStart = \DateTimeImmutable::createFromInterface($completedAt)->modify(sprintf('-%d days', $this->lookbackWindow));
-        $pageView = $this->sourceRepository->findPageViewToCredit($clientId, $windowStart, $completedAt);
+        $pageView = $this->sourceRepository->findPageViewToCredit($clientIds, $windowStart, $completedAt);
         if (null === $pageView) {
             return $attribution;
         }

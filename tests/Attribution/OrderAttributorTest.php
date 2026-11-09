@@ -8,6 +8,7 @@ use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterfac
 use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
+use Sylius\Component\Core\Model\Customer as BaseCustomer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -122,6 +123,61 @@ final class OrderAttributorTest extends KernelTestCase
         self::assertFalse($attribution->isDirect());
         self::assertNull($attribution->getSource());
         self::assertNull($attribution->getLandingPage());
+    }
+
+    /**
+     * @test
+     */
+    public function it_credits_page_views_tracked_for_the_customers_other_client_ids(): void
+    {
+        $this->track('-2 days', 'google');
+        $this->track('-1 day', 'newsletter', 'phone', ['medium' => 'email']);
+        $this->track('-1 hour', 'direct');
+        $order = self::order('client', $this->completedAt, self::customer('laptop', 'phone', 'client'));
+
+        $attribution = $this->attribute($order);
+
+        self::assertSame('newsletter', $attribution->getSource());
+        self::assertSame('email', $attribution->getMedium());
+    }
+
+    /**
+     * @test
+     */
+    public function it_credits_page_views_tracked_for_the_orders_client_id_even_if_the_customer_lacks_it(): void
+    {
+        $this->track('-2 days', 'newsletter', 'phone');
+        $this->track('-1 day', 'google');
+        $order = self::order('client', $this->completedAt, self::customer('phone'));
+
+        self::assertSame('google', $this->attribute($order)->getSource());
+    }
+
+    /**
+     * @test
+     */
+    public function it_attributes_an_order_without_a_non_direct_page_view_to_the_newest_direct_one_of_any_of_the_customers_client_ids(): void
+    {
+        $this->track('-2 hours', 'direct', details: ['page' => 'https://shop.example/']);
+        $this->track('-1 hour', 'direct', 'phone', ['page' => 'https://shop.example/products/shoes']);
+        $order = self::order('client', $this->completedAt, self::customer('laptop', 'phone', 'client'));
+
+        $attribution = $this->attribute($order);
+
+        self::assertTrue($attribution->isDirect());
+        self::assertSame('https://shop.example/products/shoes', $attribution->getLandingPage());
+    }
+
+    /**
+     * @test
+     */
+    public function it_credits_only_the_orders_client_id_if_the_customer_does_not_collect_client_ids(): void
+    {
+        $this->track('-1 hour', 'google');
+        $order = self::order('client', $this->completedAt);
+        $order->setCustomer(new BaseCustomer());
+
+        self::assertSame('google', $this->attribute($order)->getSource());
     }
 
     /**

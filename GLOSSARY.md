@@ -5,8 +5,12 @@ Credits completed orders to the traffic sources their visitors came from.
 ## Language
 
 **Attribution**:
-What a completed order is credited to, recorded shortly after checkout: the newest non-direct page view in the lookback window before checkout or, if there is none, the newest direct one. If no page view was tracked in the window, the order is credited to nothing.
+What a completed order is credited to, recorded shortly after checkout: the newest non-direct page view tracked for the order's or its customer's client ids in the lookback window before checkout or, if there is none, the newest direct one. If no page view was tracked in the window, the order is credited to nothing.
 _Avoid_: Credit, last non-direct click, conversion
+
+**Client id**:
+The id of a browser, kept in its `setono_client_id` cookie, which every page view tracked from that browser carries. An order gets the client id of the browser it was checked out from. If the shop links browsers to customers, the customer also collects the client ids of all the browsers they checked out from, so a returning customer's page views on another of those browsers are credited too. Otherwise only the order's client id counts.
+_Avoid_: Visitor id, device id, session
 
 **Direct**:
 The source of a tracked page view that came with no click id, no `utm_source` and no referrer from another site.

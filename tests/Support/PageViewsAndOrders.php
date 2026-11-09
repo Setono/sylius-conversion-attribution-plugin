@@ -6,6 +6,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\CustomerInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
@@ -53,16 +54,33 @@ trait PageViewsAndOrders
         return $pageView;
     }
 
+    protected static function customer(string ...$clientIds): CustomerInterface
+    {
+        $customer = self::factory('sylius.factory.customer')->createNew();
+        self::assertInstanceOf(CustomerInterface::class, $customer);
+        $customer->setEmail(sprintf('%s@example.com', bin2hex(random_bytes(8))));
+        foreach ($clientIds as $clientId) {
+            $customer->addClientId($clientId);
+        }
+
+        $entityManager = self::entityManager();
+        $entityManager->persist($customer);
+        $entityManager->flush();
+
+        return $customer;
+    }
+
     /**
      * An order completed at $checkoutCompletedAt, or one still being checked out if that's null
      */
-    protected static function order(?string $clientId, ?\DateTimeInterface $checkoutCompletedAt): OrderInterface
+    protected static function order(?string $clientId, ?\DateTimeInterface $checkoutCompletedAt, ?CustomerInterface $customer = null): OrderInterface
     {
         $order = self::factory('sylius.factory.order')->createNew();
         self::assertInstanceOf(OrderInterface::class, $order);
         $order->setCurrencyCode('USD');
         $order->setLocaleCode('en_US');
         $order->setCheckoutCompletedAt($checkoutCompletedAt);
+        $order->setCustomer($customer);
         if (null !== $clientId) {
             $order->setClientId($clientId);
         }

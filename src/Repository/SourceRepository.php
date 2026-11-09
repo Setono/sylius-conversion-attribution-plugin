@@ -18,15 +18,15 @@ class SourceRepository extends EntityRepository implements SourceRepositoryInter
 {
     use ResourceRepositoryTrait;
 
-    public function findPageViewToCredit(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface
+    public function findPageViewToCredit(array $clientIds, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface
     {
         $pageView = $this->createQueryBuilder('o')
             ->addSelect('CASE WHEN o.source = :direct THEN 1 ELSE 0 END AS HIDDEN isDirect')
-            ->andWhere('o.clientId = :clientId')
+            ->andWhere('o.clientId IN (:clientIds)')
             ->andWhere('o.createdAt >= :from')
             ->andWhere('o.createdAt <= :until')
             ->setParameter('direct', SourceInterface::DIRECT)
-            ->setParameter('clientId', $clientId)
+            ->setParameter('clientIds', $clientIds)
             ->setParameter('from', \DateTime::createFromInterface($from), 'datetime')
             ->setParameter('until', \DateTime::createFromInterface($until), 'datetime')
             ->orderBy('isDirect')
