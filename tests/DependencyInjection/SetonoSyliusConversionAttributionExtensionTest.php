@@ -68,8 +68,9 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
 
         $this->load();
 
-        $this->assertContainerBuilderHasServiceDefinitionWithArgument(TrackAction::class, 3, new Reference('setono_client.client_context.default'));
-        $this->assertContainerBuilderHasServiceDefinitionWithArgument(AddClientIdSubscriber::class, 0, new Reference('setono_client.client_context.default'));
+        $clientContext = new Reference('setono_client.client_context.default');
+        $this->assertContainerBuilderHasServiceDefinitionWithArgument(TrackAction::class, 3, $clientContext);
+        $this->assertContainerBuilderHasServiceDefinitionWithArgument(AddClientIdSubscriber::class, 0, $clientContext);
     }
 
     /**
