@@ -127,6 +127,34 @@ final class OrderAttributorTest extends KernelTestCase
     /**
      * @test
      */
+    public function it_credits_page_views_tracked_for_the_customers_other_client_ids(): void
+    {
+        $this->track('-2 days', 'google');
+        $this->track('-1 day', 'newsletter', 'phone', ['medium' => 'email']);
+        $this->track('-1 hour', 'direct');
+        $order = self::order('client', $this->completedAt, self::customer('laptop', 'phone', 'client'));
+
+        $attribution = $this->attribute($order);
+
+        self::assertSame('newsletter', $attribution->getSource());
+        self::assertSame('email', $attribution->getMedium());
+    }
+
+    /**
+     * @test
+     */
+    public function it_credits_page_views_tracked_for_the_orders_client_id_even_if_the_customer_lacks_it(): void
+    {
+        $this->track('-2 days', 'newsletter', 'phone');
+        $this->track('-1 day', 'google');
+        $order = self::order('client', $this->completedAt, self::customer('phone'));
+
+        self::assertSame('google', $this->attribute($order)->getSource());
+    }
+
+    /**
+     * @test
+     */
     public function it_refuses_an_order_that_is_not_completed(): void
     {
         $this->expectException(\InvalidArgumentException::class);

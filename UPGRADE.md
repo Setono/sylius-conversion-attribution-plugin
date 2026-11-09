@@ -28,11 +28,17 @@ It is now a static file with all per-visitor work done server side when a page v
 
 An order's attribution is now recorded once, in a new table (`setono_sylius_conversion_attribution__attribution`,
 model `Model\Attribution`), instead of being looked up each time the admin order page is shown. It's the
-newest non-direct page view tracked for the order's client id in the lookback window before checkout
-(`lookback_window`, 30 days by default) or, if there is none, the newest direct one or, failing that,
-nothing. Before, it was the newest non-direct one of any age, and an order lost it when the prune command
-deleted that page view. The prune command now keeps only the lookback window (30 days instead of 180), as
-older page views can't be credited anymore.
+newest non-direct page view tracked for the order's client id, or any of its customer's, in the lookback window
+before checkout (`lookback_window`, 30 days by default) or, if there is none, the newest direct one or, failing
+that, nothing. Before, it was the newest non-direct one of the order's client id of any age, and an order lost it
+when the prune command deleted that page view. The prune command now keeps only the lookback window (30 days
+instead of 180), as older page views can't be credited anymore.
+
+A customer's client ids (`Model\CustomerInterface::getClientIds()`, the browsers they checked out from) were
+collected but never used. Now they credit a returning customer's page views from their other browsers, including
+the client ids collected under 1.x. Implementing `CustomerInterface` on your `Customer` entity is optional: drop it,
+and its column, if you don't want a customer's browsers linked, and only the browser an order was checked out from
+counts.
 
 Attributions are recorded by a new command, `setono:sylius-conversion-attribution:attribute`, not during the
 checkout, so recording one can never make a checkout fail. Schedule it every few minutes; until it has run,
