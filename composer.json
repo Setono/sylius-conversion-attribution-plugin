@@ -38,6 +38,7 @@
         "babdev/pagerfanta-bundle": "^3.8",
         "behat/behat": "^3.14",
         "dama/doctrine-test-bundle": "^8.0",
+        "doctrine/annotations": "^1.13 || ^2.0",
         "doctrine/doctrine-bundle": "^2.11",
         "jms/serializer-bundle": "^4.2",
         "lexik/jwt-authentication-bundle": "^2.17",

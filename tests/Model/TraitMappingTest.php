@@ -27,7 +27,7 @@ final class TraitMappingTest extends TestCase
      */
     public function it_maps_the_client_id_of_an_order(MappingDriver $driver): void
     {
-        $metadata = self::load($driver, Order::class);
+        $metadata = self::loadMetadata($driver, Order::class);
 
         self::assertSame('string', $metadata->getTypeOfField('clientId'));
         self::assertTrue($metadata->isNullable('clientId'));
@@ -40,7 +40,7 @@ final class TraitMappingTest extends TestCase
      */
     public function it_maps_the_client_ids_of_a_customer(MappingDriver $driver): void
     {
-        $metadata = self::load($driver, Customer::class);
+        $metadata = self::loadMetadata($driver, Customer::class);
 
         self::assertSame('json', $metadata->getTypeOfField('clientIds'));
         self::assertTrue($metadata->isNullable('clientIds'));
@@ -60,7 +60,7 @@ final class TraitMappingTest extends TestCase
      *
      * @return ClassMetadata<object>
      */
-    private static function load(MappingDriver $driver, string $class): ClassMetadata
+    private static function loadMetadata(MappingDriver $driver, string $class): ClassMetadata
     {
         $metadata = new ClassMetadata($class);
         $driver->loadMetadataForClass($class, $metadata);
