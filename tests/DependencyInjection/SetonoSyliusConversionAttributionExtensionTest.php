@@ -9,6 +9,7 @@ use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterfac
 use Setono\SyliusConversionAttributionPlugin\Command\AttributeCommand;
 use Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackAction;
 use Setono\SyliusConversionAttributionPlugin\DependencyInjection\SetonoSyliusConversionAttributionExtension;
+use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber;
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber;
 use Setono\SyliusConversionAttributionPlugin\Model\Attribution;
 use Setono\SyliusConversionAttributionPlugin\Repository\AttributionRepository;
@@ -17,6 +18,7 @@ use Setono\TagBagBundle\SetonoTagBagBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Component\Config\Resource\FileResource;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 
 final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExtensionTestCase
 {
@@ -52,6 +54,22 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
         $this->assertContainerBuilderHasService(AttributeCommand::class);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.repository.attribution.class', AttributionRepository::class);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.repository.source.class', SourceRepository::class);
+    }
+
+    /**
+     * A host that points the ClientContextInterface alias at its own context, instead of decorating the default
+     * one like client-bundle does, would otherwise track page views and stamp orders with different client ids
+     *
+     * @test
+     */
+    public function it_reads_the_client_id_of_page_views_and_orders_from_the_same_client_context(): void
+    {
+        $this->setParameter('kernel.bundles', ['SetonoTagBagBundle' => SetonoTagBagBundle::class]);
+
+        $this->load();
+
+        $this->assertContainerBuilderHasServiceDefinitionWithArgument(TrackAction::class, 3, new Reference('setono_client.client_context.default'));
+        $this->assertContainerBuilderHasServiceDefinitionWithArgument(AddClientIdSubscriber::class, 0, new Reference('setono_client.client_context.default'));
     }
 
     /**
