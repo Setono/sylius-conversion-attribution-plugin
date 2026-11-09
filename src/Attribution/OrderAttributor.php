@@ -36,7 +36,7 @@ final class OrderAttributor implements OrderAttributorInterface
         $clientIds = [$clientId];
         $customer = $order->getCustomer();
         if ($customer instanceof CustomerInterface) {
-            $clientIds = [$clientId, ...$customer->getClientIds()];
+            array_push($clientIds, ...$customer->getClientIds());
         }
 
         $windowStart = \DateTimeImmutable::createFromInterface($completedAt)->modify(sprintf('-%d days', $this->lookbackWindow));

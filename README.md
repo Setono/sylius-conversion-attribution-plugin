@@ -268,7 +268,9 @@ attribute command then records the order's attribution: the newest non-direct pa
 client ids in the lookback window (30 days) before checkout or, if there is none, the newest direct one, with its
 source, medium, campaign, referrer, landing page and time, or nothing if no page view was tracked. So a customer who
 checked out from their phone before and now orders on their laptop is credited to the ad they clicked on their
-phone. The order page in the admin shows the attribution in the sidebar, or that the order hasn't been attributed
+phone. The customer's client ids are read when the order is attributed, so with `--all` a browser the customer
+first checked out from after the order counts too, though only with page views tracked before the order's checkout.
+The order page in the admin shows the attribution in the sidebar, or that the order hasn't been attributed
 yet. Page views tracked after checkout, like the customer returning from a payment gateway, aren't credited, and
 pruning old page views doesn't change the attribution.
 
@@ -317,10 +319,10 @@ requirements). On the visitor's device, the client id lives in the `setono_clien
 script keeps its session timestamp in `localStorage` (`ssca_last_seen`).
 
 If you extended the `Customer` entity, each customer keeps the client ids of all the browsers they checked out
-from, which links those browsers' page views to them. Sylius gives guest checkouts with the same email one
-customer, so a guest who enters someone else's email links their browser to that customer. If you don't want
-browsers linked, leave the `Customer` entity as it is: only the browser an order was checked out from is credited
-then.
+from, which links those browsers' page views to them. Customers with an account have to log in to check out with
+their email, but Sylius gives guest checkouts with the same email one customer, so a guest who enters the email of a
+customer without an account links their browser to that customer. If you don't want browsers linked, leave the
+`Customer` entity as it is: only the browser an order was checked out from is credited then.
 
 [ico-version]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/v/stable
 [ico-license]: https://poser.pugx.org/setono/sylius-conversion-attribution-plugin/license

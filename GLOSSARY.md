@@ -9,7 +9,7 @@ What a completed order is credited to, recorded shortly after checkout: the newe
 _Avoid_: Credit, last non-direct click, conversion
 
 **Client id**:
-The id of a browser, kept in its `setono_client_id` cookie, which every page view tracked from that browser carries. An order gets the client id of the browser it was checked out from, and its customer collects the client ids of all the browsers they checked out from, so a returning customer's page views on another of those browsers are credited too.
+The id of a browser, kept in its `setono_client_id` cookie, which every page view tracked from that browser carries. An order gets the client id of the browser it was checked out from. If the shop links browsers to customers, the customer also collects the client ids of all the browsers they checked out from, so a returning customer's page views on another of those browsers are credited too. Otherwise only the order's client id counts.
 _Avoid_: Visitor id, device id, session
 
 **Direct**:
