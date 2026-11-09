@@ -274,6 +274,10 @@ The order page in the admin shows the attribution in the sidebar, or that the or
 yet. Page views tracked after checkout, like the customer returning from a payment gateway, aren't credited, and
 pruning old page views doesn't change the attribution.
 
+Only orders completed through the shop's checkout get a client id. Orders completed through Sylius' API (e.g. from a
+headless frontend) aren't attributed. The tracking script only runs on pages Sylius renders, so the plugin doesn't
+track page views on such a frontend either.
+
 ## Notes
 
 ### Optional runtime dependencies
