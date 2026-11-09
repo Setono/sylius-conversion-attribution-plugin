@@ -67,16 +67,16 @@ use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\OrderTrait;
 use Sylius\Component\Core\Model\Order as BaseOrder;
 
-/**
- * @ORM\Entity
- *
- * @ORM\Table(name="sylius_order")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'sylius_order')]
 class Order extends BaseOrder implements OrderInterface
 {
     use OrderTrait;
 }
 ```
+
+The examples use attribute mapping, like Sylius-Standard. The traits are mapped with both attributes and annotations,
+so if your application maps its entities with annotations, map the class with `@ORM\Entity` and `@ORM\Table` instead.
 
 ### Extend the `Customer` entity (optional)
 
@@ -96,11 +96,8 @@ use Setono\SyliusConversionAttributionPlugin\Model\CustomerInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\CustomerTrait;
 use Sylius\Component\Core\Model\Customer as BaseCustomer;
 
-/**
- * @ORM\Entity
- *
- * @ORM\Table(name="sylius_customer")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'sylius_customer')]
 class Customer extends BaseCustomer implements CustomerInterface
 {
     use CustomerTrait;

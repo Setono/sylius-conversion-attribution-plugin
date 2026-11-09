@@ -9,11 +9,8 @@ use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\OrderTrait;
 use Sylius\Component\Core\Model\Order as BaseOrder;
 
-/**
- * @ORM\Entity
- *
- * @ORM\Table(name="sylius_order")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'sylius_order')]
 class Order extends BaseOrder implements OrderInterface
 {
     use OrderTrait;
