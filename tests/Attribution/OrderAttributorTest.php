@@ -38,7 +38,7 @@ final class OrderAttributorTest extends KernelTestCase
             'page' => 'https://shop.example/products/shoes',
         ]);
         $this->track('-30 minutes', 'direct');
-        // the customer returning from the payment gateway after completing the order, and a later visit
+        // the customer returning from the payment gateway after completing the order, and a later page view
         $this->track('+5 minutes', 'paypal.com');
         $this->track('+3 days', 'newsletter');
         // another visitor
@@ -72,6 +72,7 @@ final class OrderAttributorTest extends KernelTestCase
 
         $stored = self::attributionsOf($order);
         self::assertCount(1, $stored);
+        self::assertNotNull($stored[0]->getId());
         self::assertSame('google', $stored[0]->getSource());
     }
 

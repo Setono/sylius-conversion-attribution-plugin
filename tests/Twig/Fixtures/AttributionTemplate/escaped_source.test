@@ -1,5 +1,5 @@
 --TEST--
-The box escapes the source, which comes from the visitor (e.g. ?utm_source=<script>...)
+The box escapes the source
 --TEMPLATE--
 {% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
 --DATA--

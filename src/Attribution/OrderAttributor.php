@@ -60,14 +60,14 @@ final class OrderAttributor implements OrderAttributorInterface
         return $attribution;
     }
 
-    private function findNewestPageView(string $clientId, \DateTimeInterface $completedAt, Comparison $source): ?SourceInterface
+    private function findNewestPageView(string $clientId, \DateTimeInterface $completedAt, Comparison $sourceCondition): ?SourceInterface
     {
         $windowStart = \DateTimeImmutable::createFromInterface($completedAt)->modify(sprintf('-%d days', $this->lookbackWindow));
 
         $pageView = $this->getRepository($this->sourceClass)->matching(
             Criteria::create()
                 ->where(Criteria::expr()->eq('clientId', $clientId))
-                ->andWhere($source)
+                ->andWhere($sourceCondition)
                 ->andWhere(Criteria::expr()->gte('createdAt', \DateTime::createFromImmutable($windowStart)))
                 ->andWhere(Criteria::expr()->lte('createdAt', \DateTime::createFromInterface($completedAt)))
                 ->orderBy(['createdAt' => Criteria::DESC, 'id' => Criteria::DESC])

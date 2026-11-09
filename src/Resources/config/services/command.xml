@@ -7,7 +7,6 @@
             <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface"/>
             <argument>%sylius.model.order.class%</argument>
             <argument>%setono_sylius_conversion_attribution.model.attribution.class%</argument>
-            <argument>100</argument>
 
             <tag name="console.command"/>
         </service>

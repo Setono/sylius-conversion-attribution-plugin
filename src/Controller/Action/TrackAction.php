@@ -11,6 +11,7 @@ use Setono\Doctrine\ORMTrait;
 use Setono\SyliusConversionAttributionPlugin\Factory\SourceFactoryInterface;
 use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
 use Setono\SyliusConversionAttributionPlugin\Matcher\SourceMatcherInterface;
+use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -27,7 +28,6 @@ final class TrackAction
         private readonly ClientContextInterface $clientContext,
         private readonly SourceMatcherInterface $sourceMatcher,
         private readonly ValidatorInterface $validator,
-        private readonly string $defaultSource,
     ) {
         $this->managerRegistry = $managerRegistry;
     }
@@ -52,7 +52,7 @@ final class TrackAction
         $source->setReferrer($pageView->referrer);
         $source->setIp($request->getClientIp());
         $source->setUserAgent($request->headers->get('user-agent'));
-        $source->setSource($this->defaultSource);
+        $source->setSource(SourceInterface::DIRECT);
 
         $match = $this->sourceMatcher->match($pageView);
 

@@ -43,7 +43,6 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.javascript.enabled', true);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.session_timeout', 3600);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
-        $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.source.default', 'direct');
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.model.source.class');
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.lookback_window', 60);
         $this->assertContainerBuilderHasParameter('setono_sylius_conversion_attribution.model.attribution.class', Attribution::class);

@@ -28,6 +28,9 @@ final class BackfillCommand extends Command
 {
     use ORMTrait;
 
+    // How many orders are attributed and flushed at a time
+    private const BATCH_SIZE = 100;
+
     public function __construct(
         ManagerRegistry $managerRegistry,
         private readonly OrderAttributorInterface $orderAttributor,
@@ -35,8 +38,6 @@ final class BackfillCommand extends Command
         private readonly string $orderClass,
         /** @var class-string<AttributionInterface> $attributionClass */
         private readonly string $attributionClass,
-        // How many orders are attributed and flushed at a time
-        private readonly int $batchSize,
     ) {
         parent::__construct();
 
@@ -48,7 +49,7 @@ final class BackfillCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->title('Attributing completed orders');
 
-        $total = $this->getRepository($this->orderClass)->matching($this->trackedOrders())->count();
+        $total = $this->getRepository($this->orderClass)->matching($this->trackedOrdersCriteria())->count();
         if (0 === $total) {
             $io->success('No orders to attribute');
 
@@ -92,7 +93,7 @@ final class BackfillCommand extends Command
      */
     private function getNextOrders(mixed $lastId): array
     {
-        $criteria = $this->trackedOrders()->orderBy(['id' => Criteria::ASC])->setMaxResults($this->batchSize);
+        $criteria = $this->trackedOrdersCriteria()->orderBy(['id' => Criteria::ASC])->setMaxResults(self::BATCH_SIZE);
         if (null !== $lastId) {
             $criteria->andWhere(Criteria::expr()->gt('id', $lastId));
         }
@@ -103,7 +104,7 @@ final class BackfillCommand extends Command
     /**
      * Completed orders that have a client id
      */
-    private function trackedOrders(): Criteria
+    private function trackedOrdersCriteria(): Criteria
     {
         return Criteria::create()
             ->where(Criteria::expr()->neq('checkoutCompletedAt', null))

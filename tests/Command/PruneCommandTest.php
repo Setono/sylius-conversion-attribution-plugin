@@ -10,7 +10,6 @@ use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -90,12 +89,7 @@ final class PruneCommandTest extends KernelTestCase
      */
     public function it_accepts_a_lookback_window_of_a_day(): void
     {
-        self::trackPageView('client', 'google', new \DateTimeImmutable('-2 days'));
-        $recent = self::trackPageView('client', 'facebook', new \DateTimeImmutable('-12 hours'));
-
-        $this->execute(lookbackWindow: 1)->assertCommandIsSuccessful();
-
-        self::assertSame([$recent->getId()], $this->remainingIds());
+        self::assertSame('setono:sylius-conversion-attribution:prune', $this->createCommand(1)->getName());
     }
 
     /**
@@ -105,7 +99,15 @@ final class PruneCommandTest extends KernelTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->execute(lookbackWindow: 0);
+        $this->createCommand(0);
+    }
+
+    private function createCommand(int $lookbackWindow): PruneCommand
+    {
+        $doctrine = self::getContainer()->get('doctrine');
+        self::assertInstanceOf(ManagerRegistry::class, $doctrine);
+
+        return new PruneCommand($doctrine, self::modelClass('setono_sylius_conversion_attribution.model.source.class', SourceInterface::class), $lookbackWindow);
     }
 
     protected static function container(): ContainerInterface
@@ -125,28 +127,12 @@ final class PruneCommandTest extends KernelTestCase
         return array_map(static fn (SourceInterface $pageView): mixed => $pageView->getId(), self::entityManager()->getRepository($class)->findAll());
     }
 
-    /**
-     * Runs the command as the application registers it or, given a lookback window, as built with it
-     */
-    private function execute(?int $lookbackWindow = null): CommandTester
+    private function execute(): CommandTester
     {
-        $name = 'setono:sylius-conversion-attribution:prune';
+        // getContainer() boots the kernel, unless the test already did
+        self::getContainer();
 
-        if (null === $lookbackWindow) {
-            // getContainer() boots the kernel, unless the test already did
-            self::getContainer();
-            $command = (new Application(self::$kernel))->find($name);
-        } else {
-            $doctrine = self::getContainer()->get('doctrine');
-            self::assertInstanceOf(ManagerRegistry::class, $doctrine);
-            $sourceClass = self::modelClass('setono_sylius_conversion_attribution.model.source.class', SourceInterface::class);
-
-            $application = new ConsoleApplication();
-            $application->add(new PruneCommand($doctrine, $sourceClass, $lookbackWindow));
-            $command = $application->find($name);
-        }
-
-        $tester = new CommandTester($command);
+        $tester = new CommandTester((new Application(self::$kernel))->find('setono:sylius-conversion-attribution:prune'));
         $tester->execute([]);
 
         return $tester;

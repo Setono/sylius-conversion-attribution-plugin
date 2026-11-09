@@ -249,8 +249,8 @@ When a customer completes checkout, the visitor's client id is saved on the orde
 and the order's attribution is recorded: the newest non-direct page view tracked for that client id in
 the lookback window (30 days) before checkout or, if there is none, the newest direct one, with its
 source, medium, campaign, referrer, landing page and time. The order page in the admin shows it in the
-sidebar. Visits after checkout, like the customer returning from a payment gateway, don't take the
-credit, and pruning old page views doesn't change it.
+sidebar. Page views tracked after checkout, like the customer returning from a payment gateway, aren't
+credited, and pruning old page views doesn't change the attribution.
 
 ## Notes
 

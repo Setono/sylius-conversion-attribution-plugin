@@ -48,9 +48,8 @@ when the prune command deleted that page view. The prune command now keeps only 
 - If you override the admin template (`order/attribution.html.twig`), call
   `setono_sylius_conversion_attribution(order)` instead of
   `setono_sylius_conversion_attribution_last_non_direct(order)`. It returns a `Model\AttributionInterface`
-  (`landingPage` and `trackedAt` instead of `page` and `createdAt`) or `null`. Escape the source before
-  passing it to a translation you print `raw`, and only link the referrer and landing page when they
-  start with `http://` or `https://`: the visitor controls all three.
+  (`landingPage` and `trackedAt` instead of `page` and `createdAt`) or `null`. Start from the plugin's new
+  template, which escapes the source and only links http(s) addresses.
 - The translation keys `attribution_body_without_source` and `direct` are replaced by
   `attribution_body_direct`, `attribution_body_without_page_view` and `attribution_body_not_tracked`.
 
@@ -58,9 +57,10 @@ when the prune command deleted that page view. The prune command now keeps only 
 
 If you redefine, decorate or extend these services, update the arguments:
 
-- `Controller\Action\TrackAction::__construct(SourceFactoryInterface $sourceFactory, ManagerRegistry $managerRegistry, BotDetectorInterface $botDetector, ClientContextInterface $clientContext, SourceMatcherInterface $sourceMatcher, ValidatorInterface $validator, string $defaultSource)`.
+- `Controller\Action\TrackAction::__construct(SourceFactoryInterface $sourceFactory, ManagerRegistry $managerRegistry, BotDetectorInterface $botDetector, ClientContextInterface $clientContext, SourceMatcherInterface $sourceMatcher, ValidatorInterface $validator)`.
   All arguments are required. `__invoke()` takes a `TrackPayload` and the (required) `Request`, and
-  builds the `Source` itself.
+  builds the `Source` itself, with the source `direct` (`Model\SourceInterface::DIRECT`) when no matcher
+  matches. The `setono_sylius_conversion_attribution.source.default` parameter is gone.
 - `EventSubscriber\AddJavascriptSubscriber::__construct(TagBagInterface $tagBag, UrlGeneratorInterface $urlGenerator, Packages $packages, int $sessionTimeout, string $scriptVersion)`.
   The client information resolver, bot detector, cookie provider and source matcher arguments are gone.
   The subscriber adds a `ScriptTag` instead of an `InlineScriptTag`.
@@ -74,6 +74,9 @@ If you redefine, decorate or extend these services, update the arguments:
   which also records the order's attribution.
 - `Command\PruneCommand::__construct(ManagerRegistry $managerRegistry, string $sourceClass, int $lookbackWindow)`.
   It keeps the lookback window instead of an optional `$daysToKeep` (180).
+- `Twig\Runtime::__construct(ManagerRegistry $managerRegistry, string $attributionClass)`, and
+  `getLastNonDirect()` is replaced by `getAttribution()`, which returns the order's stored
+  `Model\AttributionInterface` (the `setono_sylius_conversion_attribution(order)` Twig function).
 
 ## Source matchers
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\DependencyInjection;
 
-use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Setono\TagBagBundle\SetonoTagBagBundle;
 use Sylius\Bundle\ResourceBundle\DependencyInjection\Extension\AbstractResourceExtension;
 use Sylius\Bundle\ResourceBundle\SyliusResourceBundle;
@@ -36,7 +35,6 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
         $container->setParameter('setono_sylius_conversion_attribution.lookback_window', $config['lookback_window']);
         $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
-        $container->setParameter('setono_sylius_conversion_attribution.source.default', SourceInterface::DIRECT);
 
         $loader->load('services.xml');
 

@@ -1,5 +1,5 @@
 --TEST--
-The box only links web addresses, as the browser posts the referrer and landing page, so they can be anything
+The box only links http(s) addresses
 --TEMPLATE--
 {% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
 --DATA--

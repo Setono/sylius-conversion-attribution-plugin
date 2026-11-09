@@ -1,8 +1,6 @@
-{#
-    The attribution box in the sidebar of the admin order page. The source, referrer and landing page come
-    from the visitor, so the source is escaped before it goes into the translated HTML, and only web
-    addresses are linked
-#}
+{# The attribution box in the sidebar of the admin order page #}
+{% macro web_link(url) %}{% if url matches '{^https?://}i' %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ url }}</a>{% else %}{{ url }}{% endif %}{% endmacro %}
+{% import _self as attribution_box %}
 {% set attribution = setono_sylius_conversion_attribution(order) %}
 <div style="margin: 1em 0">
     <h4 class="ui attached styled header top">{{ 'setono_sylius_conversion_attribution.ui.attribution_heading'|trans }}</h4>
@@ -39,13 +37,13 @@
             {%~ if attribution.referrer is not null %}
             <tr>
                 <td><strong>{{ 'setono_sylius_conversion_attribution.ui.referrer'|trans }}</strong></td>
-                <td class="single line">{% if attribution.referrer matches '{^https?://}i' %}<a href="{{ attribution.referrer }}" target="_blank" rel="noopener noreferrer">{{ attribution.referrer }}</a>{% else %}{{ attribution.referrer }}{% endif %}</td>
+                <td class="single line">{{ attribution_box.web_link(attribution.referrer) }}</td>
             </tr>
             {%~ endif %}
             {%~ if attribution.landingPage is not null %}
             <tr>
                 <td><strong>{{ 'setono_sylius_conversion_attribution.ui.landing_page'|trans }}</strong></td>
-                <td class="single line">{% if attribution.landingPage matches '{^https?://}i' %}<a href="{{ attribution.landingPage }}" target="_blank" rel="noopener noreferrer">{{ attribution.landingPage }}</a>{% else %}{{ attribution.landingPage }}{% endif %}</td>
+                <td class="single line">{{ attribution_box.web_link(attribution.landingPage) }}</td>
             </tr>
             {%~ endif %}
             <tr>

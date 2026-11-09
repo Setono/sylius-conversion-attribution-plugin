@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Command;
 
-use Doctrine\Persistence\ManagerRegistry;
-use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface;
-use Setono\SyliusConversionAttributionPlugin\Command\BackfillCommand;
 use Setono\SyliusConversionAttributionPlugin\Model\AttributionInterface;
 use Setono\SyliusConversionAttributionPlugin\Model\OrderInterface;
 use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -27,7 +23,7 @@ final class BackfillCommandTest extends KernelTestCase
     {
         $order = self::order('client', new \DateTimeImmutable('2026-10-01 12:00:00'));
         self::trackPageView('client', 'google', new \DateTimeImmutable('2026-09-30 12:00:00'));
-        // after the checkout, so it must not take the credit
+        // after the checkout, so the order must not be credited to it
         self::trackPageView('client', 'facebook', new \DateTimeImmutable('2026-10-05 12:00:00'));
 
         $tester = $this->execute();
@@ -71,20 +67,23 @@ final class BackfillCommandTest extends KernelTestCase
     {
         $first = self::order('first', new \DateTimeImmutable('2026-10-01 12:00:00'));
         self::trackPageView('first', 'google', new \DateTimeImmutable('2026-09-30 12:00:00'));
-        // stays without an attribution, so the next batch must not start over with it
-        self::order('without-page-views', new \DateTimeImmutable('2026-10-01 12:00:00'));
-        $third = self::order('third', new \DateTimeImmutable('2026-10-01 12:00:00'));
-        self::trackPageView('third', 'facebook', new \DateTimeImmutable('2026-09-30 12:00:00'));
+        // They stay without an attribution, so the next batch must not start over with them
+        for ($i = 0; $i < 99; ++$i) {
+            self::order('without-page-views', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        }
+        // the 101st order, so it's in the second batch (of 100)
+        $last = self::order('last', new \DateTimeImmutable('2026-10-01 12:00:00'));
+        self::trackPageView('last', 'facebook', new \DateTimeImmutable('2026-09-30 12:00:00'));
 
-        $tester = $this->execute(batchSize: 2);
+        $tester = $this->execute();
 
         $tester->assertCommandIsSuccessful();
         // each batch is flushed and cleared, so a large backfill doesn't hold every order in memory
         self::assertSame(0, self::entityManager()->getUnitOfWork()->size());
         self::assertSame(['google'], $this->attributedSources($first));
-        self::assertSame(['facebook'], $this->attributedSources($third));
+        self::assertSame(['facebook'], $this->attributedSources($last));
         // the progress bar is finished, followed by a blank line and the result
-        self::assertMatchesRegularExpression('# 3/3 \[.+\] 100%\n\n \[OK\] Attributed 2 of the 3 orders without an attribution#u', $tester->getDisplay());
+        self::assertMatchesRegularExpression('# 101/101 \[.+\] 100%\n\n \[OK\] Attributed 2 of the 101 orders without an attribution#u', $tester->getDisplay());
     }
 
     /**
@@ -114,33 +113,12 @@ final class BackfillCommandTest extends KernelTestCase
         return array_map(static fn (AttributionInterface $attribution): ?string => $attribution->getSource(), self::attributionsOf($order));
     }
 
-    /**
-     * Runs the command as the application registers it or, given a batch size, as built with it
-     */
-    private function execute(?int $batchSize = null): CommandTester
+    private function execute(): CommandTester
     {
-        $name = 'setono:sylius-conversion-attribution:backfill';
+        // getContainer() boots the kernel, unless the test already did
+        self::getContainer();
 
-        if (null === $batchSize) {
-            // getContainer() boots the kernel, unless the test already did
-            self::getContainer();
-            $command = (new Application(self::$kernel))->find($name);
-        } else {
-            $container = self::getContainer();
-            $orderAttributor = $container->get(OrderAttributorInterface::class);
-            self::assertInstanceOf(OrderAttributorInterface::class, $orderAttributor);
-            $orderClass = self::modelClass('sylius.model.order.class', OrderInterface::class);
-            $attributionClass = self::modelClass('setono_sylius_conversion_attribution.model.attribution.class', AttributionInterface::class);
-
-            $doctrine = $container->get('doctrine');
-            self::assertInstanceOf(ManagerRegistry::class, $doctrine);
-
-            $application = new ConsoleApplication();
-            $application->add(new BackfillCommand($doctrine, $orderAttributor, $orderClass, $attributionClass, $batchSize));
-            $command = $application->find($name);
-        }
-
-        $tester = new CommandTester($command);
+        $tester = new CommandTester((new Application(self::$kernel))->find('setono:sylius-conversion-attribution:backfill'));
         $tester->execute([]);
 
         return $tester;
