@@ -5,7 +5,7 @@ Credits completed orders to the traffic sources their visitors came from.
 ## Language
 
 **Attribution**:
-The tracked page view an order is credited to, recorded when the order is completed: the newest non-direct page view in the lookback window before checkout or, if there is none, the newest direct one. An order without a tracked page view in the window has no attribution.
+What a completed order is credited to, recorded shortly after checkout: the newest non-direct page view in the lookback window before checkout or, if there is none, the newest direct one. If no page view was tracked in the window, the order is credited to nothing.
 _Avoid_: Credit, last non-direct click, conversion
 
 **Direct**:

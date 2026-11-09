@@ -26,32 +26,42 @@ It is now a static file with all per-visitor work done server side when a page v
 
 ## Attribution
 
-An order's attribution is now recorded when the order is completed, in a new table
-(`setono_sylius_conversion_attribution__attribution`, model `Model\Attribution`), instead of being looked
-up each time the admin order page is shown. It's the newest non-direct page view tracked for the order's
-client id in the lookback window before checkout (`lookback_window`, 30 days by default) or, if there is
-none, the newest direct one. Before, it was the newest non-direct one of any age, and an order lost it
-when the prune command deleted that page view. The prune command now keeps only the lookback window
-(30 days instead of 180), as older page views can't be credited anymore.
+An order's attribution is now recorded once, in a new table (`setono_sylius_conversion_attribution__attribution`,
+model `Model\Attribution`), instead of being looked up each time the admin order page is shown. It's the
+newest non-direct page view tracked for the order's client id in the lookback window before checkout
+(`lookback_window`, 30 days by default) or, if there is none, the newest direct one or, failing that,
+nothing. Before, it was the newest non-direct one of any age, and an order lost it when the prune command
+deleted that page view. The prune command now keeps only the lookback window (30 days instead of 180), as
+older page views can't be credited anymore.
+
+Attributions are recorded by a new command, `setono:sylius-conversion-attribution:attribute`, not during the
+checkout, so recording one can never make a checkout fail. Schedule it every few minutes; until it has run,
+the admin order page says the order hasn't been attributed yet.
 
 **Upgrade in this order**, or the prune command deletes the page views older orders need:
 
 1. Stop the scheduled prune command.
 2. Deploy, and add the new table with a migration (`doctrine:migrations:diff` and
    `doctrine:migrations:migrate`).
-3. Attribute the orders completed before the upgrade, from the page views still stored:
+3. Attribute all the orders completed so far, from the page views still stored (`--all` also takes orders
+   completed before the lookback window, which a scheduled run skips):
    ```bash
-   php bin/console setono:sylius-conversion-attribution:backfill
+   php bin/console setono:sylius-conversion-attribution:attribute --all
    ```
-4. Schedule the prune command again.
+4. Schedule the attribute command every few minutes, and the prune command again (e.g. daily).
 
 - If you override the admin template (`order/attribution.html.twig`), call
   `setono_sylius_conversion_attribution(order)` instead of
   `setono_sylius_conversion_attribution_last_non_direct(order)`. It returns a `Model\AttributionInterface`
-  (`landingPage` and `trackedAt` instead of `page` and `createdAt`) or `null`. Start from the plugin's new
-  template, which escapes the source and only links http(s) addresses.
+  (`landingPage` and `trackedAt` instead of `page` and `createdAt`; `hasPageView()` is false for an order
+  credited to nothing) or `null` until the order is attributed. Start from the plugin's new template, which
+  escapes the source and only links http(s) addresses.
 - The translation keys `attribution_body_without_source` and `direct` are replaced by
-  `attribution_body_direct`, `attribution_body_without_page_view` and `attribution_body_not_tracked`.
+  `attribution_body_direct`, `attribution_body_without_page_view`, `attribution_body_pending` and
+  `attribution_body_not_tracked`.
+- The source and attribution resources use the plugin's `Repository\SourceRepository` and
+  `Repository\AttributionRepository` by default. If you configure your own repository class for either, extend
+  the plugin's (or implement `Repository\SourceRepositoryInterface` or `Repository\AttributionRepositoryInterface`).
 
 ## Constructor and signature changes
 
@@ -69,12 +79,9 @@ If you redefine, decorate or extend these services, update the arguments:
   It takes the referrer database instead of the referrer parser.
 - `CacheWarmer\ReferrersCacheWarmer::__construct(ReferrerDatabase $referrerDatabase, string $url = …)`.
   It builds the referrer database instead of writing a cache file itself.
-- `EventSubscriber\AddClientIdSubscriber` is replaced by
-  `EventSubscriber\AttributeOrderSubscriber::__construct(ClientContextInterface $clientContext, OrderAttributorInterface $orderAttributor)`,
-  which also records the order's attribution.
-- `Command\PruneCommand::__construct(ManagerRegistry $managerRegistry, string $sourceClass, int $lookbackWindow)`.
+- `Command\PruneCommand::__construct(SourceRepositoryInterface $sourceRepository, int $lookbackWindow)`.
   It keeps the lookback window instead of an optional `$daysToKeep` (180).
-- `Twig\Runtime::__construct(ManagerRegistry $managerRegistry, string $attributionClass)`, and
+- `Twig\Runtime::__construct(AttributionRepositoryInterface $attributionRepository)`, and
   `getLastNonDirect()` is replaced by `getAttribution()`, which returns the order's stored
   `Model\AttributionInterface` (the `setono_sylius_conversion_attribution(order)` Twig function).
 
@@ -106,9 +113,9 @@ If you redefine, decorate or extend these services, update the arguments:
   and the `setono_sylius_conversion_attribution.referrers.cache.adapter` cache service. To look referrers
   up differently, point the `Referrer\ReferrerDatabaseInterface` alias at your own implementation.
 - `Provider\OrderAttributionProvider` and `Provider\OrderAttributionProviderInterface` (and their service).
-  `Attribution\OrderAttributorInterface` records an order's attribution; read it with the
-  `setono_sylius_conversion_attribution(order)` Twig function or the attribution repository
-  (`setono_sylius_conversion_attribution.repository.attribution`).
+  `Attribution\OrderAttributorInterface` decides an order's attribution, which the attribute command stores;
+  read it with the `setono_sylius_conversion_attribution(order)` Twig function or
+  `Repository\AttributionRepositoryInterface::findOneByOrder()`.
 
 ## Dependencies
 
@@ -116,4 +123,6 @@ If you redefine, decorate or extend these services, update the arguments:
 - `symfony/deprecation-contracts` is no longer required.
 - `symfony/cache` is no longer required.
 - `doctrine/collections` is required.
+- `symfony/lock` is required: the attribute command takes a lock through the application's lock factory
+  (`framework.lock`), so overlapping runs don't attribute an order twice.
 - Twig 2 is no longer supported: `twig/twig` ^3.21 is required.

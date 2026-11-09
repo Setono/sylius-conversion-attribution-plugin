@@ -1,4 +1,3 @@
-{# The attribution box in the sidebar of the admin order page #}
 {% macro web_link(url) %}{% if url matches '{^https?://}i' %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ url }}</a>{% else %}{{ url }}{% endif %}{% endmacro %}
 {% import _self as attribution_box %}
 {% set attribution = setono_sylius_conversion_attribution(order) %}
@@ -7,10 +6,12 @@
     <div class="ui attached segment">
         {%~ if attribution is null %}
         {%~ if order.clientId is defined and order.clientId is not null %}
-        {{ 'setono_sylius_conversion_attribution.ui.attribution_body_without_page_view'|trans }}
+        {{ 'setono_sylius_conversion_attribution.ui.attribution_body_pending'|trans }}
         {%~ else %}
         {{ 'setono_sylius_conversion_attribution.ui.attribution_body_not_tracked'|trans }}
         {%~ endif %}
+        {%~ elseif not attribution.hasPageView %}
+        {{ 'setono_sylius_conversion_attribution.ui.attribution_body_without_page_view'|trans }}
         {%~ else %}
         {%~ if attribution.direct %}
         {{ 'setono_sylius_conversion_attribution.ui.attribution_body_direct'|trans }}

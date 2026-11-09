@@ -1,9 +1,9 @@
 --TEST--
-The box tells when no page view was tracked in the lookback window for a tracked order
+The box tells when no page view was tracked for the order in the lookback window
 --TEMPLATE--
 {% include '@SetonoSyliusConversionAttributionPlugin/order/attribution.html.twig' %}
 --DATA--
-return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\AttributionTemplateTest::attributedOrder('client')]
+return ['order' => \Setono\SyliusConversionAttributionPlugin\Tests\Twig\AttributionTemplateTest::attributedOrder('client', [])]
 --EXPECT--
 <div style="margin: 1em 0">
     <h4 class="ui attached styled header top">Attribution</h4>

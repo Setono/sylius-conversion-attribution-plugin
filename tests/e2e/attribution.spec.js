@@ -1,3 +1,4 @@
+const app = require('./support/app');
 const {test, expect, tracked, endSession} = require('./support/test');
 
 test('an order is credited to the campaign the customer came from, not to a payment gateway or a later visit', async ({page, trackRequests, state}) => {
@@ -31,10 +32,10 @@ test('an order is credited to the campaign the customer came from, not to a paym
     await page.getByRole('button', {name: 'Place order'}).click();
     await page.waitForURL(/\/order\/thank-you$/);
 
-    // The order is credited when it's completed
+    // Orders are attributed by the scheduled attribute command, not during the checkout
     const {orders, attributions} = await state();
     expect(orders).toHaveLength(1);
-    expect(attributions).toEqual([expect.objectContaining({orderId: orders[0].id, source: 'newsletter', medium: 'email', campaign: 'fall'})]);
+    expect(attributions).toEqual([]);
 
     // Sylius completes the checkout before the payment, so the customer returns from the payment gateway
     // afterwards, within the session. That must not be recorded as a referral
@@ -43,15 +44,21 @@ test('an order is credited to the campaign the customer came from, not to a paym
     expect(await page.evaluate(() => document.referrer)).toMatch(/^https:\/\/www\.paypal\.com\//);
     expect(trackRequests).toHaveLength(1); // the landing page view only
 
-    // later, in a new session, the customer comes back through an ad, which must not change the attribution
+    // later, in a new session, the customer comes back through an ad, which must not change the attribution. The
+    // database stores times with second precision, so make sure that visit isn't in the same second as the
+    // checkout (a real one never is)
     await endSession(page);
+    await page.waitForTimeout(1000);
     response = tracked(page);
     await page.goto('/en_US/?utm_source=later&utm_medium=cpc');
     await response;
 
+    // The attribute command, run as cron would after all that, credits the order as of its checkout
+    app.console('setono:sylius-conversion-attribution:attribute');
+
     const {sources, attributions: attributionsAfterwards} = await state();
     expect(sources.map((source) => source.source)).toEqual(['newsletter', 'later']);
-    expect(attributionsAfterwards.map((attribution) => attribution.source)).toEqual(['newsletter']);
+    expect(attributionsAfterwards).toEqual([expect.objectContaining({orderId: orders[0].id, source: 'newsletter', medium: 'email', campaign: 'fall'})]);
 
     await page.goto('/admin/login');
     await page.fill('#_username', 'sylius');

@@ -119,15 +119,26 @@ php bin/console assets:install
 
 If the script isn't installed, the browser gets a 404 for it and nothing is tracked.
 
-### Prune old page views (recommended)
+### Schedule the attribute and prune commands
 
-Every tracked page view creates a `source` row, so the table grows continuously. Schedule the prune
-command (for example daily via cron) to delete the rows older than the lookback window (30 days by
-default): an order is credited when it's completed, so older page views can't be credited anymore:
+Orders are attributed by a command rather than during the checkout, so recording an attribution can never make
+a checkout fail. Schedule it every few minutes, and the prune command daily, for example with cron:
 
-```bash
-php bin/console setono:sylius-conversion-attribution:prune
 ```
+*/5 * * * * php /path/to/your/app/bin/console setono:sylius-conversion-attribution:attribute
+0 3 * * * php /path/to/your/app/bin/console setono:sylius-conversion-attribution:prune
+```
+
+A scheduled run only considers orders completed within the lookback window (30 days by default), as older orders
+have no page views left to credit once they're pruned. Run it with `--all` to also attribute older orders, e.g.
+once after installing the plugin or if the schedule stopped for longer than the window. On a shop with many
+orders, add an index on `sylius_order.checkout_completed_at` (Sylius doesn't have one), so each run finds the
+recent orders quickly.
+
+The attribute command takes a lock through your application's lock factory, so overlapping runs don't attribute an
+order twice. With several servers, configure a shared store under `framework.lock` (e.g. Redis), or run it on one. The prune command deletes the tracked page views older than the lookback window
+(30 days by default), which can't be credited anymore. Every tracked page view creates a `source` row, so
+without pruning the table grows continuously.
 
 ## Configuration
 
@@ -245,11 +256,11 @@ services:
 
 ### Attribution
 
-When a customer completes checkout, the visitor's client id is saved on the order and the customer,
-and the order's attribution is recorded: the newest non-direct page view tracked for that client id in
-the lookback window (30 days) before checkout or, if there is none, the newest direct one, with its
-source, medium, campaign, referrer, landing page and time. The order page in the admin shows it in the
-sidebar. Page views tracked after checkout, like the customer returning from a payment gateway, aren't
+When a customer completes checkout, the visitor's client id is saved on the order and the customer. The
+attribute command then records the order's attribution: the newest non-direct page view tracked for that client
+id in the lookback window (30 days) before checkout or, if there is none, the newest direct one, with its source,
+medium, campaign, referrer, landing page and time, or nothing if no page view was tracked. The order page in the
+admin shows it in the sidebar, or that the order hasn't been attributed yet. Page views tracked after checkout, like the customer returning from a payment gateway, aren't
 credited, and pruning old page views doesn't change the attribution.
 
 ## Notes

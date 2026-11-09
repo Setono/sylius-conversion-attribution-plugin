@@ -6,9 +6,8 @@
                  alias="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributor"/>
 
         <service id="Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributor">
-            <argument type="service" id="doctrine"/>
+            <argument type="service" id="Setono\SyliusConversionAttributionPlugin\Repository\SourceRepositoryInterface"/>
             <argument type="service" id="setono_sylius_conversion_attribution.factory.attribution"/>
-            <argument>%setono_sylius_conversion_attribution.model.source.class%</argument>
             <argument>%setono_sylius_conversion_attribution.lookback_window%</argument>
         </service>
     </services>

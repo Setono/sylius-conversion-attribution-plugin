@@ -6,6 +6,8 @@ namespace Setono\SyliusConversionAttributionPlugin\DependencyInjection;
 
 use Setono\SyliusConversionAttributionPlugin\Model\Attribution;
 use Setono\SyliusConversionAttributionPlugin\Model\Source;
+use Setono\SyliusConversionAttributionPlugin\Repository\AttributionRepository;
+use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepository;
 use Sylius\Component\Resource\Factory\Factory;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -74,7 +76,10 @@ final class Configuration implements ConfigurationInterface
                     ->children()
         ;
 
-        foreach (['source' => Source::class, 'attribution' => Attribution::class] as $resource => $model) {
+        foreach ([
+            'source' => [Source::class, SourceRepository::class],
+            'attribution' => [Attribution::class, AttributionRepository::class],
+        ] as $resource => [$model, $repository]) {
             $resources
                 ->arrayNode($resource)
                     ->addDefaultsIfNotSet()
@@ -85,7 +90,7 @@ final class Configuration implements ConfigurationInterface
                             ->children()
                                 ->scalarNode('factory')->defaultValue(Factory::class)->cannotBeEmpty()->end()
                                 ->scalarNode('model')->defaultValue($model)->cannotBeEmpty()->end()
-                                ->scalarNode('repository')->cannotBeEmpty()->end()
+                                ->scalarNode('repository')->defaultValue($repository)->cannotBeEmpty()->end()
             ;
         }
     }

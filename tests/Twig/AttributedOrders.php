@@ -34,15 +34,15 @@ trait AttributedOrders
     }
 
     /**
-     * An order completed on 2026-10-26 at noon, attributed if $attribution is given
+     * An order completed on 2026-10-26 at noon, attributed if $attribution is given (to nothing if it has no source)
      *
-     * @param array{source: string, medium?: string, campaign?: string, referrer?: string, landingPage?: string, trackedAt?: string}|null $attribution
+     * @param array{source?: string, medium?: string, campaign?: string, referrer?: string, landingPage?: string, trackedAt?: string}|null $attribution
      */
     public static function attributedOrder(?string $clientId, ?array $attribution = null): OrderInterface
     {
         $order = self::order($clientId, new \DateTimeImmutable('2026-10-26 12:00:00'));
         if (null !== $attribution) {
-            self::attribution($order, $attribution['source'], $attribution);
+            self::attribution($order, $attribution);
         }
 
         return $order;

@@ -11,10 +11,6 @@ use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-/**
- * Creates tracked page views, orders and attributions in the test application's database, through the
- * application's own factories. dama/doctrine-test-bundle rolls them back after each test
- */
 trait PageViewsAndOrders
 {
     abstract protected static function container(): ContainerInterface;
@@ -58,7 +54,7 @@ trait PageViewsAndOrders
     }
 
     /**
-     * An order completed at $checkoutCompletedAt, or one being completed if that's null
+     * An order completed at $checkoutCompletedAt, or one still being checked out if that's null
      */
     protected static function order(?string $clientId, ?\DateTimeInterface $checkoutCompletedAt): OrderInterface
     {
@@ -79,19 +75,23 @@ trait PageViewsAndOrders
     }
 
     /**
-     * @param array{medium?: string, campaign?: string, referrer?: string, landingPage?: string, trackedAt?: string} $details
+     * An attribution to the given page view or, without a source, to nothing
+     *
+     * @param array{source?: string, medium?: string, campaign?: string, referrer?: string, landingPage?: string, trackedAt?: string} $pageView
      */
-    protected static function attribution(OrderInterface $order, string $source, array $details = []): AttributionInterface
+    protected static function attribution(OrderInterface $order, array $pageView = []): AttributionInterface
     {
         $attribution = self::factory('setono_sylius_conversion_attribution.factory.attribution')->createNew();
         self::assertInstanceOf(AttributionInterface::class, $attribution);
         $attribution->setOrder($order);
-        $attribution->setSource($source);
-        $attribution->setMedium($details['medium'] ?? null);
-        $attribution->setCampaign($details['campaign'] ?? null);
-        $attribution->setReferrer($details['referrer'] ?? null);
-        $attribution->setLandingPage($details['landingPage'] ?? null);
-        $attribution->setTrackedAt(new \DateTimeImmutable($details['trackedAt'] ?? '2026-10-26 11:00:00'));
+        if (isset($pageView['source'])) {
+            $attribution->setSource($pageView['source']);
+            $attribution->setMedium($pageView['medium'] ?? null);
+            $attribution->setCampaign($pageView['campaign'] ?? null);
+            $attribution->setReferrer($pageView['referrer'] ?? null);
+            $attribution->setLandingPage($pageView['landingPage'] ?? null);
+            $attribution->setTrackedAt(new \DateTimeImmutable($pageView['trackedAt'] ?? '2026-10-26 11:00:00'));
+        }
 
         $entityManager = self::entityManager();
         $entityManager->persist($attribution);
@@ -111,8 +111,6 @@ trait PageViewsAndOrders
     }
 
     /**
-     * The class configured in a container parameter, e.g. the application's model class for a resource
-     *
      * @template T of object
      *
      * @param class-string<T> $type

@@ -49,6 +49,11 @@ class Attribution implements AttributionInterface
         $this->source = $source;
     }
 
+    public function hasPageView(): bool
+    {
+        return null !== $this->trackedAt;
+    }
+
     public function isDirect(): bool
     {
         return SourceInterface::DIRECT === $this->source;

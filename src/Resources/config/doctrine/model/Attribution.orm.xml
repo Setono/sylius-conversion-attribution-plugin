@@ -13,16 +13,15 @@
             </options>
         </id>
 
-        <!-- One attribution per order, deleted with it -->
         <one-to-one field="order" target-entity="Sylius\Component\Order\Model\OrderInterface">
             <join-column name="order_id" referenced-column-name="id" nullable="false" unique="true" on-delete="CASCADE"/>
         </one-to-one>
 
-        <field name="source"/>
+        <field name="source" nullable="true"/>
         <field name="medium" nullable="true"/>
         <field name="campaign" nullable="true"/>
         <field name="referrer" type="text" nullable="true"/>
         <field name="landingPage" column="landing_page" type="text" nullable="true"/>
-        <field name="trackedAt" column="tracked_at" type="datetime"/>
+        <field name="trackedAt" column="tracked_at" type="datetime" nullable="true"/>
     </mapped-superclass>
 </doctrine-mapping>

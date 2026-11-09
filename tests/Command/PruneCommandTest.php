@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Command;
 
-use Doctrine\Persistence\ManagerRegistry;
 use Setono\SyliusConversionAttributionPlugin\Command\PruneCommand;
 use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
+use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepositoryInterface;
 use Setono\SyliusConversionAttributionPlugin\Tests\Support\PageViewsAndOrders;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -104,10 +104,10 @@ final class PruneCommandTest extends KernelTestCase
 
     private function createCommand(int $lookbackWindow): PruneCommand
     {
-        $doctrine = self::getContainer()->get('doctrine');
-        self::assertInstanceOf(ManagerRegistry::class, $doctrine);
+        $sourceRepository = self::getContainer()->get(SourceRepositoryInterface::class);
+        self::assertInstanceOf(SourceRepositoryInterface::class, $sourceRepository);
 
-        return new PruneCommand($doctrine, self::modelClass('setono_sylius_conversion_attribution.model.source.class', SourceInterface::class), $lookbackWindow);
+        return new PruneCommand($sourceRepository, $lookbackWindow);
     }
 
     protected static function container(): ContainerInterface

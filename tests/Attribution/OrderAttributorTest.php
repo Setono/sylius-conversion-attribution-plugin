@@ -47,33 +47,15 @@ final class OrderAttributorTest extends KernelTestCase
 
         $attribution = $this->attribute($order);
 
-        self::assertNotNull($attribution);
         self::assertSame($order, $attribution->getOrder());
+        self::assertTrue($attribution->hasPageView());
+        self::assertFalse($attribution->isDirect());
         self::assertSame('facebook', $attribution->getSource());
         self::assertSame('cpc', $attribution->getMedium());
         self::assertSame('fall', $attribution->getCampaign());
         self::assertSame('https://www.facebook.com/', $attribution->getReferrer());
         self::assertSame('https://shop.example/products/shoes', $attribution->getLandingPage());
         self::assertEquals($this->completedAt->modify('-1 hour'), $attribution->getTrackedAt());
-        self::assertFalse($attribution->isDirect());
-    }
-
-    /**
-     * @test
-     */
-    public function it_persists_the_attribution(): void
-    {
-        $this->track('-1 hour', 'google');
-        $order = self::order('client', $this->completedAt);
-
-        $this->attribute($order);
-        self::entityManager()->flush();
-        self::entityManager()->clear();
-
-        $stored = self::attributionsOf($order);
-        self::assertCount(1, $stored);
-        self::assertNotNull($stored[0]->getId());
-        self::assertSame('google', $stored[0]->getSource());
     }
 
     /**
@@ -84,7 +66,7 @@ final class OrderAttributorTest extends KernelTestCase
         $this->track('-1 hour', 'facebook');
         $this->track('-2 hours', 'google');
 
-        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))?->getSource());
+        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))->getSource());
     }
 
     /**
@@ -97,7 +79,6 @@ final class OrderAttributorTest extends KernelTestCase
 
         $attribution = $this->attribute(self::order('client', $this->completedAt));
 
-        self::assertNotNull($attribution);
         self::assertTrue($attribution->isDirect());
         self::assertSame('https://shop.example/products/shoes', $attribution->getLandingPage());
     }
@@ -110,7 +91,7 @@ final class OrderAttributorTest extends KernelTestCase
         $this->track('-1 hour', 'google');
         $this->track('+0 seconds', 'facebook');
 
-        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))?->getSource());
+        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))->getSource());
     }
 
     /**
@@ -122,42 +103,45 @@ final class OrderAttributorTest extends KernelTestCase
         $this->track('-30 days', 'facebook');
         $this->track('-1 hour', 'direct');
 
-        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))?->getSource());
+        self::assertSame('facebook', $this->attribute(self::order('client', $this->completedAt))->getSource());
     }
 
     /**
      * @test
      */
-    public function it_attributes_an_order_being_completed_as_of_now(): void
-    {
-        self::trackPageView('client', 'google', new \DateTimeImmutable('-30 days -1 hour'));
-        self::trackPageView('client', 'facebook', new \DateTimeImmutable('-1 hour'));
-
-        self::assertSame('facebook', $this->attribute(self::order('client', null))?->getSource());
-    }
-
-    /**
-     * @test
-     */
-    public function it_does_not_attribute_an_order_without_a_page_view_in_the_lookback_window(): void
+    public function it_credits_an_order_without_a_page_view_in_the_lookback_window_to_nothing(): void
     {
         $this->track('-30 days -1 second', 'google');
         $this->track('-1 hour', 'facebook', 'someone-else');
         $order = self::order('client', $this->completedAt);
 
-        self::assertNull($this->attribute($order));
-        self::entityManager()->flush();
-        self::assertSame([], self::attributionsOf($order));
+        $attribution = $this->attribute($order);
+
+        self::assertSame($order, $attribution->getOrder());
+        self::assertFalse($attribution->hasPageView());
+        self::assertFalse($attribution->isDirect());
+        self::assertNull($attribution->getSource());
+        self::assertNull($attribution->getLandingPage());
     }
 
     /**
      * @test
      */
-    public function it_does_not_attribute_an_order_without_a_client_id(): void
+    public function it_refuses_an_order_that_is_not_completed(): void
     {
-        $this->track('-1 hour', 'google');
+        $this->expectException(\InvalidArgumentException::class);
 
-        self::assertNull($this->attribute(self::order(null, $this->completedAt)));
+        $this->attribute(self::order('client', null));
+    }
+
+    /**
+     * @test
+     */
+    public function it_refuses_an_order_without_a_client_id(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->attribute(self::order(null, $this->completedAt));
     }
 
     protected static function container(): ContainerInterface
@@ -176,7 +160,7 @@ final class OrderAttributorTest extends KernelTestCase
         self::trackPageView($clientId, $source, $trackedAt, $details);
     }
 
-    private function attribute(OrderInterface $order): ?AttributionInterface
+    private function attribute(OrderInterface $order): AttributionInterface
     {
         $attributor = self::getContainer()->get(OrderAttributorInterface::class);
         self::assertInstanceOf(OrderAttributorInterface::class, $attributor);

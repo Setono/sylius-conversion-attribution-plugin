@@ -7,9 +7,6 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Twig;
 use Setono\SyliusConversionAttributionPlugin\Twig\Extension;
 use Twig\Test\IntegrationTestCase;
 
-/**
- * The fixtures are in Fixtures/Extension
- */
 final class ExtensionTest extends IntegrationTestCase
 {
     use AttributedOrders;
