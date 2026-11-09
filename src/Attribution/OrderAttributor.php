@@ -33,13 +33,12 @@ final class OrderAttributor implements OrderAttributorInterface
         $attribution->setOrder($order);
 
         $windowStart = \DateTimeImmutable::createFromInterface($completedAt)->modify(sprintf('-%d days', $this->lookbackWindow));
-        $pageView = $this->sourceRepository->findNewestNonDirectPageView($clientId, $windowStart, $completedAt)
-            ?? $this->sourceRepository->findNewestDirectPageView($clientId, $windowStart, $completedAt);
+        $pageView = $this->sourceRepository->findPageViewToCredit($clientId, $windowStart, $completedAt);
         if (null === $pageView) {
             return $attribution;
         }
 
-        // The page views found above all have a source
+        // Tracked page views always have a source
         $attribution->setSource($pageView->getSource() ?? SourceInterface::DIRECT);
         $attribution->setMedium($pageView->getMedium());
         $attribution->setCampaign($pageView->getCampaign());

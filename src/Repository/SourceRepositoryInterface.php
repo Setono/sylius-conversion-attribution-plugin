@@ -13,14 +13,10 @@ use Sylius\Resource\Doctrine\Persistence\RepositoryInterface;
 interface SourceRepositoryInterface extends RepositoryInterface
 {
     /**
-     * The newest non-direct page view tracked for the client id between $from and $until, both included
+     * The newest non-direct page view tracked for the client id between $from and $until (both included) or, if
+     * there is none, the newest direct one
      */
-    public function findNewestNonDirectPageView(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface;
-
-    /**
-     * The newest direct page view tracked for the client id between $from and $until, both included
-     */
-    public function findNewestDirectPageView(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface;
+    public function findPageViewToCredit(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface;
 
     public function countTrackedBefore(\DateTimeInterface $before): int;
 

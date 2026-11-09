@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Repository;
 
 use Doctrine\Common\Collections\Criteria;
-use Doctrine\Common\Collections\Expr\Comparison;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Sylius\Bundle\ResourceBundle\Doctrine\ORM\ResourceRepositoryTrait;
+use Webmozart\Assert\Assert;
 
 /**
  * @extends EntityRepository<SourceInterface>
@@ -18,14 +18,27 @@ class SourceRepository extends EntityRepository implements SourceRepositoryInter
 {
     use ResourceRepositoryTrait;
 
-    public function findNewestNonDirectPageView(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface
+    public function findPageViewToCredit(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface
     {
-        return $this->findNewestPageView($clientId, $from, $until, Criteria::expr()->neq('source', SourceInterface::DIRECT));
-    }
+        $pageView = $this->createQueryBuilder('o')
+            ->addSelect('CASE WHEN o.source = :direct THEN 1 ELSE 0 END AS HIDDEN isDirect')
+            ->andWhere('o.clientId = :clientId')
+            ->andWhere('o.createdAt >= :from')
+            ->andWhere('o.createdAt <= :until')
+            ->setParameter('direct', SourceInterface::DIRECT)
+            ->setParameter('clientId', $clientId)
+            ->setParameter('from', \DateTime::createFromInterface($from), 'datetime')
+            ->setParameter('until', \DateTime::createFromInterface($until), 'datetime')
+            ->orderBy('isDirect')
+            ->addOrderBy('o.createdAt', 'DESC')
+            ->addOrderBy('o.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+        Assert::nullOrIsInstanceOf($pageView, SourceInterface::class);
 
-    public function findNewestDirectPageView(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until): ?SourceInterface
-    {
-        return $this->findNewestPageView($clientId, $from, $until, Criteria::expr()->eq('source', SourceInterface::DIRECT));
+        return $pageView;
     }
 
     public function countTrackedBefore(\DateTimeInterface $before): int
@@ -55,21 +68,6 @@ class SourceRepository extends EntityRepository implements SourceRepositoryInter
         ;
 
         return is_int($deleted) ? $deleted : 0;
-    }
-
-    private function findNewestPageView(string $clientId, \DateTimeInterface $from, \DateTimeInterface $until, Comparison $sourceCondition): ?SourceInterface
-    {
-        $pageView = $this->matching(
-            Criteria::create()
-                ->where(Criteria::expr()->eq('clientId', $clientId))
-                ->andWhere($sourceCondition)
-                ->andWhere(Criteria::expr()->gte('createdAt', \DateTime::createFromInterface($from)))
-                ->andWhere(Criteria::expr()->lte('createdAt', \DateTime::createFromInterface($until)))
-                ->orderBy(['createdAt' => Criteria::DESC, 'id' => Criteria::DESC])
-                ->setMaxResults(1),
-        )->first();
-
-        return false === $pageView ? null : $pageView;
     }
 
     private function createTrackedBeforeQueryBuilder(\DateTimeInterface $before): QueryBuilder

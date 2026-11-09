@@ -17,18 +17,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Lock\LockFactory;
 
 /**
- * Attributing orders apart from the checkout means it can never make a checkout fail. Schedule it every few
- * minutes; the first run after upgrading attributes the orders completed before
+ * Attributing orders apart from the checkout means attribution can never make a checkout fail
  */
 #[AsCommand(
-    name: self::NAME,
+    name: 'setono:sylius-conversion-attribution:attribute',
     description: 'Attributes the completed orders that have no attribution yet',
 )]
 final class AttributeCommand extends Command
 {
     use ORMTrait;
 
-    public const NAME = 'setono:sylius-conversion-attribution:attribute';
+    public const LOCK_NAME = 'setono:sylius-conversion-attribution:attribute';
 
     private const BATCH_SIZE = 100;
 
@@ -54,8 +53,7 @@ final class AttributeCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        // The application's lock store (framework.lock), so runs on several servers can share it
-        $lock = $this->lockFactory->createLock(self::NAME);
+        $lock = $this->lockFactory->createLock(self::LOCK_NAME);
         if (!$lock->acquire()) {
             $io->note('The command is already running in another process');
 

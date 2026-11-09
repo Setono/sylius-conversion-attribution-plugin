@@ -141,7 +141,7 @@ final class AttributeCommandTest extends KernelTestCase
         $order = self::order('client', new \DateTimeImmutable('-2 days'));
         $lockFactory = self::getContainer()->get('lock.factory');
         self::assertInstanceOf(LockFactory::class, $lockFactory);
-        $lock = $lockFactory->createLock(AttributeCommand::NAME);
+        $lock = $lockFactory->createLock(AttributeCommand::LOCK_NAME);
         self::assertTrue($lock->acquire());
 
         try {
@@ -180,7 +180,7 @@ final class AttributeCommandTest extends KernelTestCase
         // getContainer() boots the kernel, unless the test already did
         self::getContainer();
 
-        $tester = new CommandTester((new Application(self::$kernel))->find(AttributeCommand::NAME));
+        $tester = new CommandTester((new Application(self::$kernel))->find('setono:sylius-conversion-attribution:attribute'));
         $tester->execute($input);
 
         return $tester;
