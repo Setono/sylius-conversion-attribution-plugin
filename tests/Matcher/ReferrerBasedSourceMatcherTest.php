@@ -9,18 +9,16 @@ use Setono\SyliusConversionAttributionPlugin\Matcher\PageView;
 use Setono\SyliusConversionAttributionPlugin\Matcher\ReferrerBasedSourceMatcher;
 use Setono\SyliusConversionAttributionPlugin\Matcher\Source;
 use Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\TemporaryDirectory;
 
 final class ReferrerBasedSourceMatcherTest extends TestCase
 {
-    private string $dir;
+    use TemporaryDirectory;
 
     private ReferrerBasedSourceMatcher $matcher;
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/setono-sylius-conversion-attribution-' . bin2hex(random_bytes(8));
-        mkdir($this->dir);
-
         $referrerDatabase = new ReferrerDatabase($this->dir . '/referrers.php');
         $referrerDatabase->build((string) json_encode([
             'search' => ['Google' => ['domains' => ['google.com']]],
@@ -29,16 +27,6 @@ final class ReferrerBasedSourceMatcherTest extends TestCase
         ]));
 
         $this->matcher = new ReferrerBasedSourceMatcher($referrerDatabase);
-    }
-
-    protected function tearDown(): void
-    {
-        $files = glob($this->dir . '/*');
-        foreach (false === $files ? [] : $files as $file) {
-            unlink($file);
-        }
-
-        rmdir($this->dir);
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Setono\SyliusConversionAttributionPlugin\Tests\Referrer;
 use PHPUnit\Framework\TestCase;
 use Setono\SyliusConversionAttributionPlugin\Matcher\Source;
 use Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\TemporaryDirectory;
 
 /**
  * Builds small referrer databases in the same format as Snowplow's referers-latest.json.
@@ -24,23 +25,7 @@ final class ReferrerDatabaseTest extends TestCase
         ],
     ];
 
-    private string $dir;
-
-    protected function setUp(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/setono-sylius-conversion-attribution-' . bin2hex(random_bytes(8));
-        mkdir($this->dir);
-    }
-
-    protected function tearDown(): void
-    {
-        $files = glob($this->dir . '/*');
-        foreach (false === $files ? [] : $files as $file) {
-            unlink($file);
-        }
-
-        rmdir($this->dir);
-    }
+    use TemporaryDirectory;
 
     /**
      * @test

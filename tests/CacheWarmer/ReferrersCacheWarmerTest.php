@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer;
 use Setono\SyliusConversionAttributionPlugin\Matcher\Source;
 use Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase;
+use Setono\SyliusConversionAttributionPlugin\Tests\Support\TemporaryDirectory;
 
 /**
  * Snowplow's database is read from a local file here, so these tests don't need network access.
@@ -23,26 +24,13 @@ final class ReferrersCacheWarmerTest extends TestCase
         ],
     ];
 
-    private string $dir;
+    use TemporaryDirectory;
 
     private string $databaseFile;
 
     protected function setUp(): void
     {
-        $this->dir = sys_get_temp_dir() . '/setono-sylius-conversion-attribution-' . bin2hex(random_bytes(8));
-        mkdir($this->dir);
-
         $this->databaseFile = $this->dir . '/referrers.php';
-    }
-
-    protected function tearDown(): void
-    {
-        $files = glob($this->dir . '/*');
-        foreach (false === $files ? [] : $files as $file) {
-            unlink($file);
-        }
-
-        rmdir($this->dir);
     }
 
     /**
