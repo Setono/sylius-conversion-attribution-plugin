@@ -247,7 +247,8 @@ the first that matches wins:
    downloaded when the cache is warmed up (if the download fails, a warning is logged and the lookup
    is skipped until the next warmup, while `referrers` still apply). A site without a medium (e.g.
    Google Maps in the database) gets the medium `referral`, and any other site becomes its host with
-   the medium `referral`. Referrers from your own host are ignored.
+   the medium `referral`. Referrers from your own host are ignored, and `www.shop.example` and
+   `shop.example` count as the same host.
 
 Then the UTM parameters (`utm_source`, `utm_medium` and `utm_campaign`) are applied on top of that
 match. They're the one input you set on purpose, while a click id or a referrer is inferred, and
