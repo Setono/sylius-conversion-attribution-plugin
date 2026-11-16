@@ -163,14 +163,19 @@ setono_sylius_conversion_attribution:
 
 `query_parameters` maps query parameters, typically ad click ids, to a traffic source. The defaults are:
 
-| Key         | Query parameters            | Source                | Medium |
-|-------------|-----------------------------|-----------------------|--------|
-| `facebook`  | `fbclid`                    | `facebook`            | `cpc`  |
-| `google`    | `gclid`, `gbraid`, `wbraid` | `google`              | `cpc`  |
-| `microsoft` | `msclkid`                   | `bing`                | `cpc`  |
-| `generic`   | `source`, `ref`             | the parameter's value |        |
-| `tiktok`    | `ttclid`                    | `tiktok`              | `cpc`  |
-| `x`         | `twclid`                    | `x`                   | `cpc`  |
+| Key         | Query parameters            | Source                | Medium   |
+|-------------|-----------------------------|-----------------------|----------|
+| `facebook`  | `fbclid`                    | `facebook`            | `social` |
+| `google`    | `gclid`, `gbraid`, `wbraid` | `google`              | `cpc`    |
+| `microsoft` | `msclkid`                   | `bing`                | `cpc`    |
+| `generic`   | `source`, `ref`             | the parameter's value |          |
+| `tiktok`    | `ttclid`                    | `tiktok`              | `cpc`    |
+| `x`         | `twclid`                    | `x`                   | `cpc`    |
+
+Facebook adds `fbclid` to links in general, not just to ads, so it gets the medium `social`, the one the
+referrer database gives facebook.com. Add UTM parameters to your Facebook ads' links (e.g.
+`utm_source=facebook&utm_medium=paid_social&utm_campaign=…`), which win over it (see
+[Traffic sources](#traffic-sources)).
 
 Add your own, or disable a default by its key:
 
@@ -197,8 +202,9 @@ On every HTML page the plugin adds this tag (through the tag bag):
 ```
 
 The script POSTs the page URL and the referrer to `/track`, where everything else is resolved server
-side: the client id from the `setono_client_id` cookie riding on the request, and the traffic source
-(utm parameters, click ids such as `gclid`/`fbclid`, the referrer) by the source matchers. To keep
+side: the client id from the `setono_client_id` cookie riding on the request, and the page view's source
+from the page's query parameters (click ids such as `gclid`/`fbclid`, UTM parameters) and the referrer
+(see [Traffic sources](#traffic-sources)). To keep
 the `source` table small, a visitor isn't tracked again within `session_timeout` seconds (a rolling
 `localStorage` timestamp): only the first page view of a session is tracked, with its URL and
 referrer, since that's where the visitor came from. Later page views within the session aren't, not
@@ -207,20 +213,37 @@ gateway (PayPal, Stripe, …) is never recorded as a referral. Prerendered pages
 
 ### Traffic sources
 
-A tracked page view gets its source from the first of these that matches:
+A tracked page view gets its source in two steps. First, the source matchers are tried in order, and
+the first that matches wins:
 
 1. A query parameter from `query_parameters` (`gclid`, `fbclid`, …, see [Configuration](#configuration))
-2. `utm_source`, together with `utm_medium` and `utm_campaign`
-3. The referrer. Search engines, social networks and email providers are looked up in
+2. The referrer. Search engines, social networks and email providers are looked up in
    [Snowplow's referer database](https://github.com/snowplow-referer-parser/referer-parser), which is
    downloaded when the cache is warmed up (if the download fails, a warning is logged and the lookup
    is skipped until the next warmup). A site the database lists without a medium (e.g. Google Maps)
    gets the medium `referral`, and any other site becomes its host with the medium `referral`.
    Referrers from your own host are ignored.
-4. Otherwise the source is `direct`.
+
+Then the UTM parameters (`utm_source`, `utm_medium` and `utm_campaign`) are applied on top of that
+match. They're the one input you set on purpose, while a click id or a referrer is inferred, and
+auto-tagged links often carry only some of them:
+
+- Each UTM parameter that is set wins over the same field of the match. `?gclid=…&utm_campaign=spring_sale`
+  is credited to `google` / `cpc` / `spring_sale`.
+- If `utm_source` names another source than the match (ignoring case), nothing else of the match is
+  kept. A newsletter link (`?utm_source=newsletter`) shared on Facebook is credited to `newsletter`,
+  without Facebook's medium.
+- UTM parameters without a `utm_source` keep the match's source or, if nothing matched, get the source
+  `(not set)`. `?utm_medium=email&utm_campaign=black-friday` opened in a mail app that sends no referrer
+  is credited to `(not set)` / `email` / `black-friday`. Unlike `direct`, `(not set)` counts as
+  non-direct when an order is [attributed](#attribution).
+
+A blank parameter counts as missing. If nothing matches and no UTM parameter is set, the source is
+`direct`.
 
 To add your own rule, implement `SourceMatcherInterface` and tag the service. The priority decides
-the order: the built-in matchers have 300 (query parameters), 200 (utm) and 100 (referrer).
+its place among the matchers: the built-in ones have 300 (query parameters) and 100 (referrer).
+Whatever its priority, the UTM parameters are applied to its match too.
 
 ```php
 <?php
