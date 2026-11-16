@@ -130,14 +130,80 @@ final class TrackActionTest extends TestCase
 
     /**
      * @test
+     *
+     * @dataProvider matchedValues
+     *
+     * @param array{string, ?string, ?string} $expected the source, medium and campaign
      */
-    public function it_rejects_values_that_do_not_fit_the_columns(): void
+    public function it_stores_the_matched_values_cut_to_the_column_length(MatchedSource $match, array $expected): void
+    {
+        $persisted = null;
+        $action = $this->createAction($this->matcher($match), $this->persistingRegistry($persisted));
+
+        $response = $action($this->payload('https://shop.example/p'), $this->trackRequest());
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertInstanceOf(Source::class, $persisted);
+        self::assertSame($expected, [$persisted->getSource(), $persisted->getMedium(), $persisted->getCampaign()]);
+    }
+
+    /**
+     * @return iterable<string, array{MatchedSource, array{string, ?string, ?string}}>
+     */
+    public static function matchedValues(): iterable
+    {
+        $fits = str_repeat('a', 255);
+        $tooLong = $fits . 'b';
+
+        yield 'values that fit' => [new MatchedSource($fits, $fits, $fits), [$fits, $fits, $fits]];
+
+        yield 'over-long source' => [new MatchedSource($tooLong, 'email', 'fall'), [$fits, 'email', 'fall']];
+
+        yield 'over-long medium' => [new MatchedSource('newsletter', $tooLong, 'fall'), ['newsletter', $fits, 'fall']];
+
+        yield 'over-long campaign' => [new MatchedSource('newsletter', 'email', $tooLong), ['newsletter', 'email', $fits]];
+
+        // The columns count characters, not bytes
+        yield 'over-long multibyte campaign' => [new MatchedSource('newsletter', 'email', str_repeat('æ', 300)), ['newsletter', 'email', str_repeat('æ', 255)]];
+
+        yield 'over-long emoji campaign' => [new MatchedSource('newsletter', 'email', str_repeat('🙂', 300)), ['newsletter', 'email', str_repeat('🙂', 255)]];
+    }
+
+    /**
+     * @test
+     */
+    public function it_cuts_by_utf8_characters_whatever_the_internal_encoding(): void
+    {
+        $persisted = null;
+        $action = $this->createAction(
+            $this->matcher(new MatchedSource('newsletter', 'email', str_repeat('æ', 300))),
+            $this->persistingRegistry($persisted),
+        );
+
+        $internalEncoding = mb_internal_encoding();
+        mb_internal_encoding('ISO-8859-1');
+
+        try {
+            $response = $action($this->payload('https://shop.example/p'), $this->trackRequest());
+        } finally {
+            mb_internal_encoding($internalEncoding);
+        }
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertInstanceOf(Source::class, $persisted);
+        self::assertSame(str_repeat('æ', 255), $persisted->getCampaign());
+    }
+
+    /**
+     * @test
+     */
+    public function it_rejects_a_client_id_that_does_not_fit_the_column(): void
     {
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects(self::never())->method('getManagerForClass');
 
-        // e.g. a utm_campaign longer than the campaign column
-        $action = $this->createAction($this->matcher(new MatchedSource('newsletter', 'email', str_repeat('a', 256))), $registry);
+        // A client id cut short would be another browser's
+        $action = $this->createAction($this->matcher(null), $registry, clientId: str_repeat('a', 256));
 
         $response = $action($this->payload('https://shop.example/p'), $this->trackRequest());
 
@@ -162,8 +228,12 @@ final class TrackActionTest extends TestCase
         self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
     }
 
-    private function createAction(SourceMatcherInterface $matcher, ManagerRegistry $registry, bool $isBot = false): TrackAction
-    {
+    private function createAction(
+        SourceMatcherInterface $matcher,
+        ManagerRegistry $registry,
+        bool $isBot = false,
+        string $clientId = 'client-from-cookie',
+    ): TrackAction {
         $factory = $this->createMock(SourceFactoryInterface::class);
         $factory->method('createNew')->willReturnCallback(static fn (): Source => new Source());
 
@@ -171,7 +241,7 @@ final class TrackActionTest extends TestCase
         $botDetector->method('isBotRequest')->willReturn($isBot);
 
         $clientContext = $this->createMock(ClientContextInterface::class);
-        $clientContext->method('getClient')->willReturn(new Client('client-from-cookie'));
+        $clientContext->method('getClient')->willReturn(new Client($clientId));
 
         return new TrackAction(
             $factory,

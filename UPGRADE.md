@@ -6,6 +6,7 @@ It is now a static file with all per-visitor work done server side when a page v
 
 ## Deployment
 
+- The plugin requires PHP's `mbstring` extension.
 - The tracking script is a bundle asset now (`src/Resources/public/js/track.js`) instead of an inline
   script. Run `bin/console assets:install` when deploying (Sylius' own deployment already does).
 - If you have a Content Security Policy, the inline script needed `'unsafe-inline'` or a hash; the new
@@ -19,10 +20,12 @@ It is now a static file with all per-visitor work done server side when a page v
 - `POST /track` takes `{"page": "…", "referrer": "…"}` (`Controller\Action\TrackPayload`), and `page`
   is required. The client id, source, medium, campaign, IP and user agent are always resolved server
   side; posted values for them are ignored.
-- An over-long value for a string column of the `source` table (e.g. a `utm_campaign` longer than 255
-  characters) is answered with 422 and not stored, as before. The limits now live in a validation
-  mapping on `Model\Source` (`src/Resources/config/validation/Source.xml`), so a model class you
-  override inherits them. User agents are no longer limited to 1024 characters (it's a text column).
+- A source, medium or campaign longer than its column (e.g. a `utm_campaign` longer than 255
+  characters) is stored cut to its first 255 characters. 1.x answered 422 and lost the page view. Any
+  other value too long for a string column of the `source` table (e.g. the client id) is still
+  answered with 422 and not stored. The limits now live in a validation mapping on `Model\Source`
+  (`src/Resources/config/validation/Source.xml`), so a model class you override inherits them. User
+  agents are no longer limited to 1024 characters (it's a text column).
 
 ## Attribution
 

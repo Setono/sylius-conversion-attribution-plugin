@@ -95,6 +95,13 @@ final class TrackActionFunctionalTest extends WebTestCase
 
         yield 'a referral from facebook.com' => ['', 'https://facebook.com/', ['facebook', 'social', null]];
 
+        // A campaign longer than the column is cut to its first 255 characters, not bytes, rather than losing the page view
+        yield 'an over-long multibyte utm_campaign' => [
+            'utm_source=newsletter&utm_medium=email&utm_campaign=' . rawurlencode(str_repeat('æ€', 150)),
+            null,
+            ['newsletter', 'email', str_repeat('æ€', 127) . 'æ'],
+        ];
+
         yield 'UTM parameters in mixed case' => ['utm_source=Newsletter&utm_medium=Email&utm_campaign=Black-Friday', null, ['newsletter', 'email', 'Black-Friday']];
 
         // A shop's own matchers get the UTM parameters applied too, whatever their priority
