@@ -1,0 +1,31 @@
+services:
+    # The tests build the referrer database from a fixture in Snowplow's format instead of downloading Snowplow's
+    # (which is GPL licensed and changes over time), so they never need the network and always see the same sites
+    Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer:
+        autowire: true
+        autoconfigure: true
+        arguments:
+            $url: '%kernel.project_dir%/referrers.json'
+
+    # Source matchers like a shop would tag its own: above the click ids, between them and the referrer, and below
+    # the referrer. Each only matches its own query parameter, so it doesn't change what other page views match
+    app.source_matcher.above_click_ids:
+        class: Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher
+        arguments:
+            - [{ matches: [partner_400], source: partner, medium: affiliate, campaign: evergreen }]
+        tags:
+            - { name: setono_sylius_conversion_attribution.source_matcher, priority: 400 }
+
+    app.source_matcher.between_click_ids_and_referrer:
+        class: Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher
+        arguments:
+            - [{ matches: [partner_200], source: partner, medium: affiliate, campaign: evergreen }]
+        tags:
+            - { name: setono_sylius_conversion_attribution.source_matcher, priority: 200 }
+
+    app.source_matcher.below_referrer:
+        class: Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher
+        arguments:
+            - [{ matches: [partner_50], source: partner, medium: affiliate, campaign: evergreen }]
+        tags:
+            - { name: setono_sylius_conversion_attribution.source_matcher, priority: 50 }

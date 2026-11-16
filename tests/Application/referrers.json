@@ -1,0 +1,12 @@
+{
+    "search": {
+        "Google": {
+            "domains": ["www.google.com"]
+        }
+    },
+    "social": {
+        "Facebook": {
+            "domains": ["facebook.com"]
+        }
+    }
+}
