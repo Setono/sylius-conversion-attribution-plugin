@@ -12,6 +12,7 @@ on:
 
 env:
     APP_ENV: "test"
+    # The jobs that need it run MySQL as a service container: runner images don't ship MySQL since Ubuntu 26.04
     DATABASE_URL: "mysql://root:root@127.0.0.1/sylius?serverVersion=8.0"
     PHP_EXTENSIONS: "intl, mbstring"
 
@@ -171,10 +172,16 @@ jobs:
                 symfony:
                     - "~6.4.0"
 
-        steps:
-            -   name: "Start MySQL"
-                run: "sudo /etc/init.d/mysql start"
+        services:
+            mysql:
+                image: "mysql:8.0"
+                env:
+                    MYSQL_ROOT_PASSWORD: "root"
+                ports:
+                    - "3306:3306"
+                options: "--health-cmd=\"mysqladmin ping --silent\" --health-interval=5s --health-timeout=5s --health-retries=20"
 
+        steps:
             -   name: "Checkout"
                 uses: "actions/checkout@v4"
 
@@ -239,10 +246,16 @@ jobs:
             # The tests drop and recreate it; its name must end in _e2e
             E2E_DATABASE_URL: "mysql://root:root@127.0.0.1/sylius_e2e?serverVersion=8.0"
 
-        steps:
-            -   name: "Start MySQL"
-                run: "sudo /etc/init.d/mysql start"
+        services:
+            mysql:
+                image: "mysql:8.0"
+                env:
+                    MYSQL_ROOT_PASSWORD: "root"
+                ports:
+                    - "3306:3306"
+                options: "--health-cmd=\"mysqladmin ping --silent\" --health-interval=5s --health-timeout=5s --health-retries=20"
 
+        steps:
             -   name: "Checkout"
                 uses: "actions/checkout@v4"
 
@@ -307,10 +320,16 @@ jobs:
                 symfony:
                     - "~6.4.0"
 
-        steps:
-            -   name: "Start MySQL"
-                run: "sudo /etc/init.d/mysql start"
+        services:
+            mysql:
+                image: "mysql:8.0"
+                env:
+                    MYSQL_ROOT_PASSWORD: "root"
+                ports:
+                    - "3306:3306"
+                options: "--health-cmd=\"mysqladmin ping --silent\" --health-interval=5s --health-timeout=5s --health-retries=20"
 
+        steps:
             -   name: "Checkout"
                 uses: "actions/checkout@v4"
 
@@ -354,10 +373,16 @@ jobs:
                 dependencies:
                     - "highest"
 
-        steps:
-            -   name: "Start MySQL"
-                run: "sudo /etc/init.d/mysql start"
+        services:
+            mysql:
+                image: "mysql:8.0"
+                env:
+                    MYSQL_ROOT_PASSWORD: "root"
+                ports:
+                    - "3306:3306"
+                options: "--health-cmd=\"mysqladmin ping --silent\" --health-interval=5s --health-timeout=5s --health-retries=20"
 
+        steps:
             -   name: "Checkout"
                 uses: "actions/checkout@v4"
 
@@ -404,10 +429,16 @@ jobs:
                 dependencies:
                     - "highest"
 
-        steps:
-            -   name: "Start MySQL"
-                run: "sudo /etc/init.d/mysql start"
+        services:
+            mysql:
+                image: "mysql:8.0"
+                env:
+                    MYSQL_ROOT_PASSWORD: "root"
+                ports:
+                    - "3306:3306"
+                options: "--health-cmd=\"mysqladmin ping --silent\" --health-interval=5s --health-timeout=5s --health-retries=20"
 
+        steps:
             -   name: "Checkout"
                 uses: "actions/checkout@v4"
 
