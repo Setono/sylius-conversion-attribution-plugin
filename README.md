@@ -190,7 +190,7 @@ setono_sylius_conversion_attribution:
             enabled: false
 ```
 
-`referrers` maps the sites a referral comes from to a traffic source, and wins over the referrer database
+`referrers` maps the sites a referral comes from to a source, and wins over the referrer database
 (see [Traffic sources](#traffic-sources)). A host covers its subdomains too. The default is:
 
 | Key | Hosts                          | Source | Medium   |

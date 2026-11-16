@@ -25,7 +25,7 @@ final class ReferrerDatabaseTest extends TestCase
         ],
     ];
 
-    private const X = ['hosts' => ['t.co', 'twitter.com', 'x.com'], 'source' => 'x', 'medium' => 'social'];
+    private const X_OVERRIDE = ['hosts' => ['t.co', 'twitter.com', 'x.com'], 'source' => 'x', 'medium' => 'social'];
 
     use TemporaryDirectory;
 
@@ -233,7 +233,7 @@ final class ReferrerDatabaseTest extends TestCase
      */
     public function it_applies_an_override_to_the_subdomains_of_its_hosts(): void
     {
-        $database = $this->database(self::SNOWPLOW, [self::X]);
+        $database = $this->database(self::SNOWPLOW, [self::X_OVERRIDE]);
 
         self::assertEquals(new Source('x', 'social'), $database->lookup('https://mobile.twitter.com/someone'));
         // A host that only ends in the same characters isn't a subdomain
@@ -258,7 +258,7 @@ final class ReferrerDatabaseTest extends TestCase
     public function it_applies_overrides_when_the_database_was_not_built(): void
     {
         // e.g. the download of Snowplow's database failed at cache warmup
-        $database = new ReferrerDatabase($this->dir . '/referrers.php', [self::X]);
+        $database = new ReferrerDatabase($this->dir . '/referrers.php', [self::X_OVERRIDE]);
 
         self::assertEquals(new Source('x', 'social'), $database->lookup('https://t.co/abc'));
         self::assertNull($database->lookup('https://google.com/'));

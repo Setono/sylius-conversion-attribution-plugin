@@ -10,9 +10,9 @@ use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepositoryInterfac
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * Tracks page views through the test application, with the default configuration, the source matchers in
- * config/services_test.yaml and the referrer database built from tests/Application/referrers.json (which knows
- * www.google.com and facebook.com)
+ * Tracks page views through the test application, with the default configuration plus the partner.example
+ * referrer in config/packages/test, the source matchers in config/services_test.yaml and the referrer database
+ * built from tests/Application/referrers.json (which knows www.google.com, facebook.com, t.co and twitter.com)
  */
 final class TrackActionFunctionalTest extends WebTestCase
 {
@@ -86,6 +86,9 @@ final class TrackActionFunctionalTest extends WebTestCase
         yield 'a referral from a subdomain of twitter.com' => ['', 'https://mobile.twitter.com/someone', ['x', 'social', null]];
 
         yield 'a referral from x.com' => ['', 'https://x.com/someone', ['x', 'social', null]];
+
+        // A shop's own referrers entry, which has no medium
+        yield 'a referral from a host in the referrers config' => ['', 'https://partner.example/', ['mypartner', 'referral', null]];
 
         // "twitter" names another source than "x", so nothing else of the referral is kept
         yield 'a utm_source of twitter from t.co' => ['utm_source=twitter', 'https://t.co/abc', ['twitter', null, null]];

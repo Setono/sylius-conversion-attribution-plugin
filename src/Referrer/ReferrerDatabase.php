@@ -9,7 +9,8 @@ use Symfony\Component\Config\ResourceCheckerConfigCache;
 
 /**
  * Snowplow's referer database (https://github.com/snowplow-referer-parser/referer-parser), stored as a
- * PHP file that returns an array, so opcache keeps it in shared memory
+ * PHP file that returns an array, so opcache keeps it in shared memory, with the shop's overrides (the
+ * referrers config) on top
  */
 final class ReferrerDatabase implements ReferrerDatabaseInterface
 {
@@ -22,18 +23,18 @@ final class ReferrerDatabase implements ReferrerDatabaseInterface
     /** @var array<string, array{string, ?string}>|null */
     private ?array $referrers = null;
 
-    /** @var array<string, array{string, ?string}> */
+    /** @var array<string, Source> */
     private array $overrides = [];
 
     /**
-     * @param array<array-key, array{hosts: list<string>, source: string, medium: ?string}> $overrides sites whose
-     *        referrals count as the given source, whatever Snowplow's database says (the referrers config)
+     * @param array<array-key, array{hosts: list<string>, source: string, medium: ?string}> $overrides the enabled
+     *        entries of the referrers config
      */
     public function __construct(private readonly string $file, array $overrides = [])
     {
         foreach ($overrides as $override) {
             foreach ($override['hosts'] as $host) {
-                $this->overrides[strtolower($host)] = [$override['source'], $override['medium']];
+                $this->overrides[strtolower($host)] = new Source($override['source'], $override['medium']);
             }
         }
     }
@@ -95,7 +96,7 @@ final class ReferrerDatabase implements ReferrerDatabaseInterface
         // Checked before the database is read, so they also apply when it couldn't be downloaded
         foreach ($domains as $domain) {
             if (isset($this->overrides[$domain])) {
-                return new Source(...$this->overrides[$domain]);
+                return $this->overrides[$domain];
             }
         }
 

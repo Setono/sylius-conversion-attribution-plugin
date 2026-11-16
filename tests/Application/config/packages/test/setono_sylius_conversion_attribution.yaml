@@ -1,0 +1,6 @@
+setono_sylius_conversion_attribution:
+    referrers:
+        # A shop's own override, without a medium and in mixed case, next to the default x one
+        partner:
+            hosts: [partner.example]
+            source: MyPartner
