@@ -62,6 +62,21 @@ final class OrderAttributorTest extends KernelTestCase
     /**
      * @test
      */
+    public function it_credits_a_page_view_with_utm_parameters_but_no_source_over_a_direct_one(): void
+    {
+        $this->track('-2 hours', '(not set)', details: ['medium' => 'email', 'campaign' => 'black-friday']);
+        $this->track('-1 hour', 'direct');
+
+        $attribution = $this->attribute(self::order('client', $this->completedAt));
+
+        self::assertFalse($attribution->isDirect());
+        self::assertSame('(not set)', $attribution->getSource());
+        self::assertSame('black-friday', $attribution->getCampaign());
+    }
+
+    /**
+     * @test
+     */
     public function it_credits_the_newest_page_view_even_if_it_was_stored_first(): void
     {
         $this->track('-1 hour', 'facebook');

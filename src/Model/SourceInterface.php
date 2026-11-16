@@ -9,9 +9,15 @@ use Sylius\Component\Resource\Model\ResourceInterface;
 interface SourceInterface extends ResourceInterface, \Stringable
 {
     /**
-     * The source of a page view that came with no click id, no utm_source and no referrer from another site
+     * The source of a page view that came with no click id, no UTM parameter and no referrer from another site
      */
     public const DIRECT = 'direct';
+
+    /**
+     * The source of a page view whose UTM parameters give a medium or campaign, but that nothing names a source
+     * for. Unlike direct, it's a non-direct page view
+     */
+    public const NOT_SET = '(not set)';
 
     public function getClientId(): ?string;
 

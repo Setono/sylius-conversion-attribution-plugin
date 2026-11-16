@@ -203,7 +203,7 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
         self::assertSame([[
             'query_parameters' => [
                 'facebook' => [
-                    'matches' => ['fbclid'], 'source' => 'facebook', 'medium' => 'cpc',
+                    'matches' => ['fbclid'], 'source' => 'facebook', 'medium' => 'social',
                 ],
                 'google' => [
                     'matches' => ['gclid', 'gbraid', 'wbraid'], 'source' => 'google', 'medium' => 'cpc',

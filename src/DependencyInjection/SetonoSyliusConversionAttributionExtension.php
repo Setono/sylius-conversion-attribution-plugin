@@ -89,8 +89,10 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
     {
         $container->prependExtensionConfig('setono_sylius_conversion_attribution', [
             'query_parameters' => [
+                // Facebook adds fbclid to links in general, not just to ads. Paid ads carry UTM parameters,
+                // which win over this medium
                 'facebook' => [
-                    'matches' => ['fbclid'], 'source' => 'facebook', 'medium' => 'cpc',
+                    'matches' => ['fbclid'], 'source' => 'facebook', 'medium' => 'social',
                 ],
                 'google' => [
                     'matches' => ['gclid', 'gbraid', 'wbraid'], 'source' => 'google', 'medium' => 'cpc',

@@ -84,6 +84,8 @@ If you redefine, decorate or extend these services, update the arguments:
 - `SourceFactoryInterface::createFromClientInformation()` is removed; use `createNew()` and the setters.
 - `Matcher\ReferrerBasedSourceMatcher::__construct(ReferrerDatabaseInterface $referrerDatabase, string $medium = 'referral')`.
   It takes the referrer database instead of the referrer parser.
+- `Matcher\UtmQueryParameterBasedSourceMatcher::__construct(SourceMatcherInterface $matcher)`. It takes the
+  matcher chain it applies the UTM parameters to (see [Source matchers](#source-matchers)).
 - `CacheWarmer\ReferrersCacheWarmer::__construct(ReferrerDatabase $referrerDatabase, string $url = …)`.
   It builds the referrer database instead of writing a cache file itself.
 - `Command\PruneCommand::__construct(SourceRepositoryInterface $sourceRepository, int $lookbackWindow)`.
@@ -94,6 +96,26 @@ If you redefine, decorate or extend these services, update the arguments:
 
 ## Source matchers
 
+- UTM parameters are no longer a matcher in the chain, where a click id (`gclid`, `fbclid`, …, which have
+  a higher priority) hid them: `?gclid=…&utm_campaign=spring_sale` lost its campaign, and UTM parameters
+  without a `utm_source` were ignored. They're now applied on top of whatever the chain matched:
+  - each UTM parameter that is set wins over the same field of the match;
+  - a `utm_source` naming another source than the match (ignoring case) drops the rest of the match;
+  - a `utm_medium` or `utm_campaign` with nothing naming a source gets the new source `(not set)`
+    (`Model\SourceInterface::NOT_SET`), which counts as non-direct when an order is attributed.
+
+  `Matcher\UtmQueryParameterBasedSourceMatcher` wraps `Matcher\CompositeSourceMatcher`, and the
+  `Matcher\SourceMatcherInterface` alias points at it instead of at the composite. It's no longer tagged
+  `setono_sylius_conversion_attribution.source_matcher`, so if you decorated or retagged it, decorate the
+  `SourceMatcherInterface` alias's service instead, or tag your own matcher. No tag priority places a
+  matcher before or after the UTM parameters: they're applied to every tagged matcher's match. Its
+  constructor takes the matcher it wraps (see [Constructor and signature changes](#constructor-and-signature-changes)).
+- The default medium of `fbclid` is `social` instead of `cpc`, the medium the referrer database gives
+  facebook.com: Facebook adds `fbclid` to links in general, not just to ads. Add UTM parameters to your
+  ads' links (e.g. `utm_medium=paid_social`), or set `query_parameters.facebook.medium` to `cpc` to keep
+  the old default.
+- Page views stored before the upgrade keep the source, medium and campaign they were matched to. They
+  aren't matched again under the new rules.
 - `Matcher\SourceMatcherInterface::match()` takes a `Matcher\PageView` instead of a `Request`: the
   visited page's `url`, its `referrer` and `host`, and `getQueryParameter()` (string values only, so a
   crafted `?utm_source[]=x` no longer causes a 400). Matching happens when the tracking script reports a
