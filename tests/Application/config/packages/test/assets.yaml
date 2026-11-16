@@ -1,0 +1,8 @@
+# The PHPUnit jobs don't build the assets, and symfony/asset 6.4.0 throws on a missing manifest even when not strict
+framework:
+    assets:
+        packages:
+            shop:
+                json_manifest_path: null
+            admin:
+                json_manifest_path: null
