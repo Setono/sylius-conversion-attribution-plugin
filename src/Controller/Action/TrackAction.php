@@ -56,13 +56,15 @@ final class TrackAction
 
         $match = $this->sourceMatcher->match($pageView);
 
+        // A link's UTM parameters can be any length, and storing one cut short loses less than dropping the page view
         if (null !== $match) {
-            $source->setSource($match->source);
-            $source->setMedium($match->medium);
-            $source->setCampaign($match->campaign);
+            $source->setSource(self::truncate($match->source));
+            $source->setMedium(self::truncate($match->medium));
+            $source->setCampaign(self::truncate($match->campaign));
         }
 
-        // An over-long value (e.g. a utm_campaign longer than the column) is a 422, not a 500 on flush
+        // Nothing else is cut (a client id cut short would be another browser's), so a value too long for its
+        // column is a 422, not a 500 on flush
         if (\count($this->validator->validate($source)) > 0) {
             return new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -72,5 +74,14 @@ final class TrackAction
         $manager->flush();
 
         return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * The source, medium and campaign columns hold 255 characters, which the Length constraint counts in
+     * UTF-8 whatever the internal encoding
+     */
+    private static function truncate(?string $value): ?string
+    {
+        return null === $value ? null : mb_substr($value, 0, 255, 'UTF-8');
     }
 }
