@@ -270,6 +270,12 @@ Sources and mediums are stored in lowercase, whichever rule found them, so one s
 referrer database's `Google` and `utm_source=Google` are both stored as `google`. Campaigns keep their
 spelling.
 
+A query parameter that isn't UTF-8, e.g. `?utm_campaign=sommerf%E6st` from a tool that encodes links in
+Latin-1, is read as Windows-1252 (which extends Latin-1), so the campaign is `sommerfæst`. Emoji and other
+characters outside the Basic Multilingual Plane are stored as `�` on every database, since a table created with
+MySQL's `utf8` (utf8mb3) charset, Sylius' default up to 1.9, can't hold them: `?utm_campaign=🎄xmas` is shown as
+`�xmas` in the admin. A source, medium or campaign longer than 255 characters is stored cut to its first 255.
+
 To add your own rule, implement `SourceMatcherInterface` and tag the service. The priority decides
 its place among the matchers: the built-in ones have 300 (query parameters) and 100 (referrer).
 Whatever its priority, the UTM parameters are applied to its match too.
@@ -290,7 +296,8 @@ final class NewsletterSourceMatcher implements SourceMatcherInterface
     public function match(PageView $pageView): ?Source
     {
         // $pageView->url, $pageView->referrer, $pageView->host and $pageView->referrerHost are available
-        // too. Values come trimmed, and a blank query parameter or referrer is null
+        // too. Values come trimmed, a blank query parameter or referrer is null, and a query parameter that
+        // isn't UTF-8 is read as Windows-1252
         $issue = $pageView->getQueryParameter('newsletter');
         if (null === $issue) {
             return null;

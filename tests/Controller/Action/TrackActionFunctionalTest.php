@@ -102,6 +102,28 @@ final class TrackActionFunctionalTest extends WebTestCase
             ['newsletter', 'email', str_repeat('æ€', 127) . 'æ'],
         ];
 
+        // The test application's tables are utf8mb3, which can't hold 4-byte characters such as emoji
+        yield 'an emoji in utm_campaign' => ['utm_source=newsletter&utm_campaign=' . rawurlencode('sale🙂'), null, ['newsletter', null, 'sale�']];
+
+        yield 'an emoji in utm_source' => ['utm_source=' . rawurlencode('news🙂'), null, ['news�', null, null]];
+
+        yield 'an emoji in utm_medium' => ['utm_source=newsletter&utm_medium=' . rawurlencode('🎄mail'), null, ['newsletter', '�mail', null]];
+
+        yield 'an over-long emoji utm_campaign' => [
+            'utm_source=newsletter&utm_campaign=' . rawurlencode(str_repeat('🙂', 300)),
+            null,
+            ['newsletter', null, str_repeat('�', 255)],
+        ];
+
+        // A link built by a Latin-1 tool
+        yield 'a utm_campaign that is not UTF-8' => ['utm_source=newsletter&utm_campaign=sommerf%E6st', null, ['newsletter', null, 'sommerfæst']];
+
+        yield 'an over-long utm_campaign that is not UTF-8' => [
+            'utm_source=newsletter&utm_campaign=' . str_repeat('%E6', 300),
+            null,
+            ['newsletter', null, str_repeat('æ', 255)],
+        ];
+
         yield 'UTM parameters in mixed case' => ['utm_source=Newsletter&utm_medium=Email&utm_campaign=Black-Friday', null, ['newsletter', 'email', 'Black-Friday']];
 
         // A shop's own matchers get the UTM parameters applied too, whatever their priority
