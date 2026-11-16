@@ -1,2 +1,3 @@
+# The PHPUnit jobs don't build the assets, so the functional tests render shop and admin pages without them
 webpack_encore:
     strict_mode: false
