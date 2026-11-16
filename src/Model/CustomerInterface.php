@@ -9,7 +9,7 @@ use Sylius\Component\Core\Model\CustomerInterface as BaseCustomerInterface;
 interface CustomerInterface extends BaseCustomerInterface
 {
     /**
-     * The client ids of the browsers this customer checked out from
+     * The client ids of the browsers this customer checked out from or logged in to the shop on
      *
      * @return list<string>
      */

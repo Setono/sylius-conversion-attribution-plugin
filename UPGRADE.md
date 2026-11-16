@@ -43,10 +43,11 @@ instead of 180), as older page views can't be credited anymore.
 
 A customer's client ids (`Model\CustomerInterface::getClientIds()`, the browsers they checked out from) were
 collected but never used. Now they credit a returning customer's page views from their other browsers, including
-the client ids collected under 1.x. They're read when an order is attributed, so `--all` also counts browsers a
-customer first checked out from after the order, with their page views from before its checkout. Implementing `CustomerInterface` on your `Customer` entity is optional: drop it,
-and its column, if you don't want a customer's browsers linked, and only the browser an order was checked out from
-counts.
+the client ids collected under 1.x. Logging in to the shop now adds the browser's client id too (through the login
+form, with a remember-me cookie, or when Sylius logs a customer in right after registering), even without an order.
+The client ids are read when an order is attributed, so `--all` also counts browsers a customer first checked out
+from or logged in on after the order, with their page views from before its checkout. Implementing `CustomerInterface` on your `Customer` entity is optional: drop it, and its
+column, if you don't want a customer's browsers linked, and only the browser an order was checked out from counts.
 
 Attributions are recorded by a new command, `setono:sylius-conversion-attribution:attribute`, not during the
 checkout, so recording one can never make a checkout fail. Schedule it every few minutes; until it has run,
