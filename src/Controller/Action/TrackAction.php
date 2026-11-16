@@ -56,11 +56,12 @@ final class TrackAction
 
         $match = $this->sourceMatcher->match($pageView);
 
-        // A link's UTM parameters can be any length, and storing one cut short loses less than dropping the page view
+        // A link's UTM parameters can be any length or hold any character, and storing one cut short or with a
+        // character replaced loses less than dropping the page view
         if (null !== $match) {
-            $source->setSource(self::truncate($match->source));
-            $source->setMedium(self::truncate($match->medium));
-            $source->setCampaign(self::truncate($match->campaign));
+            $source->setSource(self::toStorable($match->source));
+            $source->setMedium(self::toStorable($match->medium));
+            $source->setCampaign(self::toStorable($match->campaign));
         }
 
         // Nothing else is cut (a client id cut short would be another browser's), so a value too long for its
@@ -77,11 +78,21 @@ final class TrackAction
     }
 
     /**
+     * A utf8mb3 column (Sylius' default charset up to 1.9) can't hold a 4-byte character, e.g. an emoji, and the
+     * flush fails. The charset isn't detected, so every database stores them as �
+     *
      * The source, medium and campaign columns hold 255 characters, which the Length constraint counts in
      * UTF-8 whatever the internal encoding
      */
-    private static function truncate(?string $value): ?string
+    private static function toStorable(?string $value): ?string
     {
-        return null === $value ? null : mb_substr($value, 0, 255, 'UTF-8');
+        if (null === $value) {
+            return null;
+        }
+
+        // A value that isn't UTF-8 can only come from a shop's own matcher, and is left for the Length constraint to reject
+        $value = preg_replace('/[\x{10000}-\x{10FFFF}]/u', "\u{FFFD}", $value) ?? $value;
+
+        return mb_substr($value, 0, 255, 'UTF-8');
     }
 }

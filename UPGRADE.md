@@ -26,6 +26,10 @@ It is now a static file with all per-visitor work done server side when a page v
   answered with 422 and not stored. The limits now live in a validation mapping on `Model\Source`
   (`src/Resources/config/validation/Source.xml`), so a model class you override inherits them. User
   agents are no longer limited to 1024 characters (it's a text column).
+- A query parameter that isn't UTF-8 (e.g. `utm_campaign=sommerf%E6st` from a tool that encodes links
+  in Latin-1) is read as Windows-1252, so the campaign is `sommerfæst`. An emoji or any other 4-byte
+  character in a source, medium or campaign is stored as `�` on every database, since a table created
+  with MySQL's `utf8` (utf8mb3) charset can't hold it. Both are stored instead of losing the page view.
 
 ## Attribution
 

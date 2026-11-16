@@ -40,7 +40,7 @@ final class PageView
         parse_str((string) parse_url($url, \PHP_URL_QUERY), $queryParameters);
         $normalizedQueryParameters = [];
         foreach ($queryParameters as $name => $value) {
-            $value = is_string($value) ? self::normalize($value) : null;
+            $value = is_string($value) ? self::normalize(self::toUtf8($value)) : null;
             if (null !== $value) {
                 $normalizedQueryParameters[$name] = $value;
             }
@@ -53,6 +53,24 @@ final class PageView
         $host = parse_url($url, \PHP_URL_HOST);
 
         return is_string($host) && '' !== $host ? strtolower($host) : null;
+    }
+
+    /**
+     * A link built by a tool that doesn't speak UTF-8 is percent-encoded in Latin-1, which
+     * Windows-1252 extends
+     */
+    private static function toUtf8(string $value): string
+    {
+        if (mb_check_encoding($value, 'UTF-8')) {
+            return $value;
+        }
+
+        // mbstring decodes the five bytes Windows-1252 leaves undefined as invisible control characters
+        return str_replace(
+            ["\u{81}", "\u{8D}", "\u{8F}", "\u{90}", "\u{9D}"],
+            "\u{FFFD}",
+            mb_convert_encoding($value, 'UTF-8', 'Windows-1252'),
+        );
     }
 
     /**

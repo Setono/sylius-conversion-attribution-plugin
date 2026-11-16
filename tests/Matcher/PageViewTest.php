@@ -51,6 +51,40 @@ final class PageViewTest extends TestCase
 
     /**
      * @test
+     */
+    public function it_keeps_utf8_query_parameters_as_they_are(): void
+    {
+        // Emoji too: they can't be stored in a utf8mb3 column, but that's for storing, not matching
+        $pageView = new PageView('https://shop.example/?utm_campaign=sommerf%C3%A6st&utm_content=%E2%82%AC%F0%9F%99%82');
+
+        self::assertSame('sommerfæst', $pageView->getQueryParameter('utm_campaign'));
+        self::assertSame('€🙂', $pageView->getQueryParameter('utm_content'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_reads_a_query_parameter_that_is_not_utf8_as_windows_1252(): void
+    {
+        // A link built by a Latin-1 tool
+        $pageView = new PageView('https://shop.example/?utm_campaign=sommerf%E6st&utm_content=%80%9F%FF');
+
+        self::assertSame('sommerfæst', $pageView->getQueryParameter('utm_campaign'));
+        self::assertSame('€Ÿÿ', $pageView->getQueryParameter('utm_content'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_reads_the_bytes_windows_1252_leaves_undefined_as_replacement_characters(): void
+    {
+        $pageView = new PageView('https://shop.example/?utm_campaign=a%81b%8Dc%8Fd%90e%9Df%E6');
+
+        self::assertSame('a�b�c�d�e�fæ', $pageView->getQueryParameter('utm_campaign'));
+    }
+
+    /**
+     * @test
      *
      * @dataProvider blankReferrers
      */

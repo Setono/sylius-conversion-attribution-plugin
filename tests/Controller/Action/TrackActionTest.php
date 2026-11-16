@@ -132,10 +132,11 @@ final class TrackActionTest extends TestCase
      * @test
      *
      * @dataProvider matchedValues
+     * @dataProvider matchedValuesWithFourByteCharacters
      *
      * @param array{string, ?string, ?string} $expected the source, medium and campaign
      */
-    public function it_stores_the_matched_values_cut_to_the_column_length(MatchedSource $match, array $expected): void
+    public function it_stores_the_matched_values_as_their_columns_can_hold_them(MatchedSource $match, array $expected): void
     {
         $persisted = null;
         $action = $this->createAction($this->matcher($match), $this->persistingRegistry($persisted));
@@ -165,8 +166,44 @@ final class TrackActionTest extends TestCase
 
         // The columns count characters, not bytes
         yield 'over-long multibyte campaign' => [new MatchedSource('newsletter', 'email', str_repeat('æ', 300)), ['newsletter', 'email', str_repeat('æ', 255)]];
+    }
 
-        yield 'over-long emoji campaign' => [new MatchedSource('newsletter', 'email', str_repeat('🙂', 300)), ['newsletter', 'email', str_repeat('🙂', 255)]];
+    /**
+     * A utf8mb3 column can't hold them
+     *
+     * @return iterable<string, array{MatchedSource, array{string, ?string, ?string}}>
+     */
+    public static function matchedValuesWithFourByteCharacters(): iterable
+    {
+        yield 'emoji in the campaign' => [new MatchedSource('newsletter', 'email', 'sale🙂'), ['newsletter', 'email', 'sale�']];
+
+        yield 'emoji in the source' => [new MatchedSource('news🙂', 'email', 'fall'), ['news�', 'email', 'fall']];
+
+        yield 'emoji in the medium' => [new MatchedSource('newsletter', '🎄mail', 'fall'), ['newsletter', '�mail', 'fall']];
+
+        yield 'a campaign of only emoji' => [new MatchedSource('newsletter', 'email', '🎄🎅'), ['newsletter', 'email', '��']];
+
+        // Replaced before being cut, so the result is 255 characters like any other cut value
+        yield 'over-long emoji campaign' => [new MatchedSource('newsletter', 'email', str_repeat('🙂', 300)), ['newsletter', 'email', str_repeat('�', 255)]];
+
+        // The last character of the Basic Multilingual Plane is 3 bytes, and the first after it is 4
+        yield 'the edges of the Basic Multilingual Plane' => [new MatchedSource('newsletter', 'email', "\u{FFFF}\u{10000}\u{10FFFF}"), ['newsletter', 'email', "\u{FFFF}��"]];
+    }
+
+    /**
+     * @test
+     */
+    public function it_rejects_a_matched_value_that_is_not_utf8(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects(self::never())->method('getManagerForClass');
+
+        // The page view's query parameters are always UTF-8, but a shop's own matcher can return anything
+        $action = $this->createAction($this->matcher(new MatchedSource('newsletter', 'email', "sommerf\xE6st")), $registry);
+
+        $response = $action($this->payload('https://shop.example/p'), $this->trackRequest());
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
     }
 
     /**
