@@ -115,7 +115,9 @@ If you redefine, decorate or extend these services, update the arguments:
 - `ClientInformation\ClientInformation`, `Resolver\ClientInformationResolver` and
   `Resolver\ClientInformationResolverInterface` (and the service of the same name). To change how the
   traffic source is resolved, add a source matcher (tag `setono_sylius_conversion_attribution.source_matcher`);
-  the client id comes from `setono/client-bundle`'s `ClientContextInterface`.
+  the client id comes from `setono/client-bundle`'s client context. To change it, decorate
+  `setono_client.client_context.default` (as client-bundle does) rather than pointing the
+  `ClientContextInterface` alias elsewhere, which the plugin doesn't read.
 - `Parser\Referrer`, `Parser\ReferrerParser` and `Parser\ReferrerParserInterface` (and their services),
   and the `setono_sylius_conversion_attribution.referrers.cache.adapter` cache service. To look referrers
   up differently, point the `Referrer\ReferrerDatabaseInterface` alias at your own implementation.
