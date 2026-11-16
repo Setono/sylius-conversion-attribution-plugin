@@ -8,24 +8,25 @@ services:
             $url: '%kernel.project_dir%/referrers.json'
 
     # Source matchers like a shop would tag its own: above the click ids, between them and the referrer, and below
-    # the referrer. Each only matches its own query parameter, so it doesn't change what other page views match
+    # the referrer. Each only matches its own query parameter, so it doesn't change what other page views match. They
+    # name their source and medium in mixed case, as a shop's own matcher might, to show they're stored lowercase
     app.source_matcher.above_click_ids:
         class: Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher
         arguments:
-            - [{ matches: [partner_400], source: partner, medium: affiliate, campaign: evergreen }]
+            - [{ matches: [partner_400], source: MyPartner, medium: Affiliate, campaign: evergreen }]
         tags:
             - { name: setono_sylius_conversion_attribution.source_matcher, priority: 400 }
 
     app.source_matcher.between_click_ids_and_referrer:
         class: Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher
         arguments:
-            - [{ matches: [partner_200], source: partner, medium: affiliate, campaign: evergreen }]
+            - [{ matches: [partner_200], source: MyPartner, medium: Affiliate, campaign: evergreen }]
         tags:
             - { name: setono_sylius_conversion_attribution.source_matcher, priority: 200 }
 
     app.source_matcher.below_referrer:
         class: Setono\SyliusConversionAttributionPlugin\Matcher\QueryParameterBasedSourceMatcher
         arguments:
-            - [{ matches: [partner_50], source: partner, medium: affiliate, campaign: evergreen }]
+            - [{ matches: [partner_50], source: MyPartner, medium: Affiliate, campaign: evergreen }]
         tags:
             - { name: setono_sylius_conversion_attribution.source_matcher, priority: 50 }

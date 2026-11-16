@@ -22,8 +22,20 @@ final class ReferrerDatabase implements ReferrerDatabaseInterface
     /** @var array<string, array{string, ?string}>|null */
     private ?array $referrers = null;
 
-    public function __construct(private readonly string $file)
+    /** @var array<string, array{string, ?string}> */
+    private array $overrides = [];
+
+    /**
+     * @param array<array-key, array{hosts: list<string>, source: string, medium: ?string}> $overrides sites whose
+     *        referrals count as the given source, whatever Snowplow's database says (the referrers config)
+     */
+    public function __construct(private readonly string $file, array $overrides = [])
     {
+        foreach ($overrides as $override) {
+            foreach ($override['hosts'] as $host) {
+                $this->overrides[strtolower($host)] = [$override['source'], $override['medium']];
+            }
+        }
     }
 
     /**
@@ -73,15 +85,26 @@ final class ReferrerDatabase implements ReferrerDatabaseInterface
             return null;
         }
 
-        $referrers = $this->referrers();
+        // The host itself and then each parent domain down to (but not including) the top level domain
         $labels = explode('.', strtolower($url['host']));
+        $domains = [];
+        for ($i = 0, $parents = count($labels) - 1; $i < $parents; ++$i) {
+            $domains[] = implode('.', array_slice($labels, $i));
+        }
 
-        // Some sites are listed with a path (e.g. google.ac/products), so the longest matching path wins:
-        // each path prefix is tried with the host itself and then each parent domain down to (but not
-        // including) the top level domain
+        // Checked before the database is read, so they also apply when it couldn't be downloaded
+        foreach ($domains as $domain) {
+            if (isset($this->overrides[$domain])) {
+                return new Source(...$this->overrides[$domain]);
+            }
+        }
+
+        $referrers = $this->referrers();
+
+        // Some sites are listed with a path (e.g. google.ac/products), so the longest matching path wins
         foreach (self::pathPrefixes($url['path'] ?? '') as $path) {
-            for ($i = 0, $parents = count($labels) - 1; $i < $parents; ++$i) {
-                $referrer = $referrers[implode('.', array_slice($labels, $i)) . $path] ?? null;
+            foreach ($domains as $domain) {
+                $referrer = $referrers[$domain . $path] ?? null;
                 if (null !== $referrer) {
                     return new Source($referrer[0], $referrer[1]);
                 }

@@ -7,6 +7,9 @@
     "social": {
         "Facebook": {
             "domains": ["facebook.com"]
+        },
+        "Twitter": {
+            "domains": ["t.co", "twitter.com"]
         }
     }
 }

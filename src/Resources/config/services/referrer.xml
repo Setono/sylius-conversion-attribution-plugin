@@ -7,6 +7,7 @@
 
         <service id="Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase">
             <argument>%setono_sylius_conversion_attribution.referrers.cache.file%</argument>
+            <argument>%setono_sylius_conversion_attribution.referrers%</argument>
         </service>
     </services>
 </container>

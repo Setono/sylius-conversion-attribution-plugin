@@ -22,6 +22,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
          * @var array{
          *     javascript: array{enabled: bool},
          *     query_parameters: array<string, array{enabled: bool, matches: list<string>, source: ?string, medium: ?string, campaign: ?string}>,
+         *     referrers: array<string, array{enabled: bool, hosts: list<string>, source: string, medium: ?string}>,
          *     session_timeout: int,
          *     lookback_window: int,
          *     resources: array<string, mixed>
@@ -32,6 +33,7 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
 
         $container->setParameter('setono_sylius_conversion_attribution.javascript.enabled', $config['javascript']['enabled']);
         $container->setParameter('setono_sylius_conversion_attribution.query_parameters', array_filter($config['query_parameters'], static fn (array $queryParameter): bool => $queryParameter['enabled']));
+        $container->setParameter('setono_sylius_conversion_attribution.referrers', array_filter($config['referrers'], static fn (array $referrer): bool => $referrer['enabled']));
         $container->setParameter('setono_sylius_conversion_attribution.session_timeout', $config['session_timeout']);
         $container->setParameter('setono_sylius_conversion_attribution.lookback_window', $config['lookback_window']);
         $container->setParameter('setono_sylius_conversion_attribution.referrers.cache.file', '%kernel.cache_dir%/referrers.php');
@@ -108,6 +110,12 @@ final class SetonoSyliusConversionAttributionExtension extends AbstractResourceE
                 ],
                 'x' => [
                     'matches' => ['twclid'], 'source' => 'x', 'medium' => 'cpc',
+                ],
+            ],
+            'referrers' => [
+                // Snowplow's database lists t.co and twitter.com as "Twitter", and doesn't know x.com
+                'x' => [
+                    'hosts' => ['t.co', 'twitter.com', 'x.com'], 'source' => 'x', 'medium' => 'social',
                 ],
             ],
         ]);

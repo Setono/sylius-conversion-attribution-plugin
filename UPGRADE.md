@@ -114,6 +114,12 @@ If you redefine, decorate or extend these services, update the arguments:
   facebook.com: Facebook adds `fbclid` to links in general, not just to ads. Add UTM parameters to your
   ads' links (e.g. `utm_medium=paid_social`), or set `query_parameters.facebook.medium` to `cpc` to keep
   the old default.
+- Referrals from t.co, twitter.com and x.com (and their subdomains) are stored as `x` / `social`, the
+  source `twclid` gives, instead of `twitter` / `social` (the referrer database's Twitter) and
+  `x.com` / `referral`. The new `referrers` option overrides the referrer database by host, and its
+  default `x` entry does this; set `referrers.x.enabled` to `false` to keep the old sources. A link tagged
+  only `utm_source=twitter` now names another source than its t.co referral, so it's stored as `twitter`
+  without the medium `social`. Tag X links `utm_source=x`, or set `utm_medium` too.
 - Page views stored before the upgrade keep the source, medium and campaign they were matched to. They
   aren't matched again under the new rules.
 - `Matcher\SourceMatcherInterface::match()` takes a `Matcher\PageView` instead of a `Request`: the
