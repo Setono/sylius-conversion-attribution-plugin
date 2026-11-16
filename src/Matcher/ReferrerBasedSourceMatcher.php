@@ -28,10 +28,19 @@ final class ReferrerBasedSourceMatcher implements SourceMatcherInterface
         }
 
         $host = $pageView->referrerHost;
-        if (null === $host || $pageView->host === $host) {
+        if (null === $host || self::withoutWww($pageView->host) === self::withoutWww($host)) {
             return null;
         }
 
         return new Source($host, $this->medium);
+    }
+
+    /**
+     * A shop answering on both www. and the bare host (e.g. redirecting from one to the other) would
+     * otherwise be recorded as its own referral
+     */
+    private static function withoutWww(?string $host): ?string
+    {
+        return null !== $host && str_starts_with($host, 'www.') ? substr($host, 4) : $host;
     }
 }

@@ -81,6 +81,37 @@ final class ReferrerBasedSourceMatcherTest extends TestCase
     {
         yield 'page host in upper case' => [new PageView('https://SHOP.example/cart', 'https://shop.example/product')];
         yield 'referrer host in upper case' => [new PageView('https://shop.example/cart', 'https://SHOP.example/product')];
+        yield 'page host with www.' => [new PageView('https://www.shop.example/', 'https://shop.example/x')];
+        yield 'referrer host with www.' => [new PageView('https://shop.example/', 'https://www.shop.example/x')];
+        yield 'page host with www. in upper case' => [new PageView('https://WWW.Shop.example/', 'https://shop.example/')];
+        yield 'both hosts with www.' => [new PageView('https://www.shop.example/cart', 'https://www.shop.example/product')];
+    }
+
+    /**
+     * @test
+     *
+     * @dataProvider subdomainsOfTheShop
+     */
+    public function it_matches_another_subdomain_of_the_shop_as_a_referral(string $referrer, string $source): void
+    {
+        self::assertEquals(new Source($source, 'referral'), $this->matcher->match(new PageView('https://shop.example/', $referrer)));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function subdomainsOfTheShop(): iterable
+    {
+        yield 'subdomain' => ['https://blog.shop.example/', 'blog.shop.example'];
+        yield 'subdomain starting with www but not www.' => ['https://www2.shop.example/', 'www2.shop.example'];
+    }
+
+    /**
+     * @test
+     */
+    public function it_keeps_www_in_the_host_of_a_referrer_missing_from_the_referrer_database(): void
+    {
+        self::assertEquals(new Source('www.other.example', 'referral'), $this->matcher->match(new PageView('https://www.shop.example/', 'https://www.other.example/post')));
     }
 
     /**
