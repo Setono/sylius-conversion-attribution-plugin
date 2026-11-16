@@ -190,6 +190,30 @@ setono_sylius_conversion_attribution:
             enabled: false
 ```
 
+`referrers` maps the sites a referral comes from to a source, and wins over the referrer database
+(see [Traffic sources](#traffic-sources)). A host covers its subdomains too. The default is:
+
+| Key | Hosts                          | Source | Medium   |
+|-----|--------------------------------|--------|----------|
+| `x` | `t.co`, `twitter.com`, `x.com` | `x`    | `social` |
+
+The referrer database lists t.co and twitter.com as Twitter and doesn't know x.com, while the `twclid`
+click id counts as `x`, so the default keeps X under one name. Your own UTM parameters still win: a link
+tagged only `utm_source=twitter` names another source than `x`, so it's stored as `twitter` without the
+referral's medium. Tag X links `utm_source=x`, or set `utm_medium` too. Add your own, or disable the
+default by its key:
+
+```yaml
+setono_sylius_conversion_attribution:
+    referrers:
+        partner:
+            hosts: [partner.example]
+            source: partner
+            medium: affiliate # optional; without a medium, a referral counts as referral
+        x:
+            enabled: false
+```
+
 ## How it works
 
 ### Tracking
@@ -217,12 +241,13 @@ A tracked page view gets its source in two steps. First, the source matchers are
 the first that matches wins:
 
 1. A query parameter from `query_parameters` (`gclid`, `fbclid`, …, see [Configuration](#configuration))
-2. The referrer. Search engines, social networks and email providers are looked up in
+2. The referrer. Sites in `referrers` (see [Configuration](#configuration)) come first. Search engines,
+   social networks and email providers are looked up in
    [Snowplow's referer database](https://github.com/snowplow-referer-parser/referer-parser), which is
    downloaded when the cache is warmed up (if the download fails, a warning is logged and the lookup
-   is skipped until the next warmup). A site the database lists without a medium (e.g. Google Maps)
-   gets the medium `referral`, and any other site becomes its host with the medium `referral`.
-   Referrers from your own host are ignored.
+   is skipped until the next warmup, while `referrers` still apply). A site without a medium (e.g.
+   Google Maps in the database) gets the medium `referral`, and any other site becomes its host with
+   the medium `referral`. Referrers from your own host are ignored.
 
 Then the UTM parameters (`utm_source`, `utm_medium` and `utm_campaign`) are applied on top of that
 match. They're the one input you set on purpose, while a click id or a referrer is inferred, and
@@ -240,6 +265,10 @@ auto-tagged links often carry only some of them:
 
 A blank parameter counts as missing. If nothing matches and no UTM parameter is set, the source is
 `direct`.
+
+Sources and mediums are stored in lowercase, whichever rule found them, so one site has one name: the
+referrer database's `Google` and `utm_source=Google` are both stored as `google`. Campaigns keep their
+spelling.
 
 To add your own rule, implement `SourceMatcherInterface` and tag the service. The priority decides
 its place among the matchers: the built-in ones have 300 (query parameters) and 100 (referrer).

@@ -12,6 +12,7 @@ use Setono\SyliusConversionAttributionPlugin\DependencyInjection\SetonoSyliusCon
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber;
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber;
 use Setono\SyliusConversionAttributionPlugin\Model\Attribution;
+use Setono\SyliusConversionAttributionPlugin\Referrer\ReferrerDatabase;
 use Setono\SyliusConversionAttributionPlugin\Repository\AttributionRepository;
 use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepository;
 use Setono\TagBagBundle\SetonoTagBagBundle;
@@ -148,6 +149,32 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
     /**
      * @test
      */
+    public function it_passes_the_enabled_referrers_to_the_referrer_database(): void
+    {
+        // Merged like the kernel merges them: the prepended defaults first, then the application's config
+        $container = new ContainerBuilder();
+        $extension = new SetonoSyliusConversionAttributionExtension();
+        $extension->prepend($container);
+        $extension->load([...$container->getExtensionConfig('setono_sylius_conversion_attribution'), [
+            'javascript' => false,
+            'referrers' => [
+                'x' => ['enabled' => false],
+                'partner' => ['hosts' => 'partner.example', 'source' => 'partner', 'medium' => 'affiliate'],
+            ],
+        ]], $container);
+
+        self::assertSame([
+            'partner' => ['hosts' => ['partner.example'], 'source' => 'partner', 'medium' => 'affiliate', 'enabled' => true],
+        ], $container->getParameter('setono_sylius_conversion_attribution.referrers'));
+        self::assertEquals(
+            '%setono_sylius_conversion_attribution.referrers%',
+            $container->getDefinition(ReferrerDatabase::class)->getArgument(1),
+        );
+    }
+
+    /**
+     * @test
+     */
     public function it_throws_exception_if_tag_bag_bundle_is_not_enabled(): void
     {
         $this->setParameter('kernel.bundles', ['FrameworkBundle' => FrameworkBundle::class]);
@@ -195,7 +222,7 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
     /**
      * @test
      */
-    public function it_prepends_the_default_query_parameters_and_the_admin_order_block(): void
+    public function it_prepends_the_default_query_parameters_and_referrers_and_the_admin_order_block(): void
     {
         $container = new ContainerBuilder();
         (new SetonoSyliusConversionAttributionExtension())->prepend($container);
@@ -219,6 +246,11 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
                 ],
                 'x' => [
                     'matches' => ['twclid'], 'source' => 'x', 'medium' => 'cpc',
+                ],
+            ],
+            'referrers' => [
+                'x' => [
+                    'hosts' => ['t.co', 'twitter.com', 'x.com'], 'source' => 'x', 'medium' => 'social',
                 ],
             ],
         ]], $container->getExtensionConfig('setono_sylius_conversion_attribution'));

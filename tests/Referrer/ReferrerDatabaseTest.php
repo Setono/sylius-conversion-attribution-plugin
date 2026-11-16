@@ -25,6 +25,8 @@ final class ReferrerDatabaseTest extends TestCase
         ],
     ];
 
+    private const X_OVERRIDE = ['hosts' => ['t.co', 'twitter.com', 'x.com'], 'source' => 'x', 'medium' => 'social'];
+
     use TemporaryDirectory;
 
     /**
@@ -214,21 +216,86 @@ final class ReferrerDatabaseTest extends TestCase
     }
 
     /**
+     * @test
+     */
+    public function it_prefers_an_override_to_the_database(): void
+    {
+        $database = $this->database(self::SNOWPLOW, [
+            ['hosts' => ['facebook.com'], 'source' => 'meta', 'medium' => 'paid_social'],
+        ]);
+
+        self::assertEquals(new Source('meta', 'paid_social'), $database->lookup('https://facebook.com/'));
+        self::assertEquals(new Source('Google', 'search'), $database->lookup('https://google.com/'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_applies_an_override_to_the_subdomains_of_its_hosts(): void
+    {
+        $database = $this->database(self::SNOWPLOW, [self::X_OVERRIDE]);
+
+        self::assertEquals(new Source('x', 'social'), $database->lookup('https://mobile.twitter.com/someone'));
+        // A host that only ends in the same characters isn't a subdomain
+        self::assertNull($database->lookup('https://notx.com/'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_ignores_the_case_of_override_hosts(): void
+    {
+        $database = $this->database(self::SNOWPLOW, [
+            ['hosts' => ['X.com'], 'source' => 'x', 'medium' => 'social'],
+        ]);
+
+        self::assertEquals(new Source('x', 'social'), $database->lookup('https://WWW.x.COM/'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_applies_overrides_when_the_database_was_not_built(): void
+    {
+        // e.g. the download of Snowplow's database failed at cache warmup
+        $database = new ReferrerDatabase($this->dir . '/referrers.php', [self::X_OVERRIDE]);
+
+        self::assertEquals(new Source('x', 'social'), $database->lookup('https://t.co/abc'));
+        self::assertNull($database->lookup('https://google.com/'));
+    }
+
+    /**
+     * @test
+     */
+    public function it_leaves_the_medium_of_an_override_without_one_to_the_caller(): void
+    {
+        $database = $this->database(self::SNOWPLOW, [
+            ['hosts' => ['partner.example'], 'source' => 'partner', 'medium' => null],
+        ]);
+
+        self::assertEquals(new Source('partner'), $database->lookup('https://partner.example/'));
+    }
+
+    /**
      * Builds the database with one instance and returns another one reading the same file, the way
      * the cache warmer and the requests that look referrers up do
      *
      * @param array<string, array<string, array{domains: list<string>}>> $snowplow
+     * @param list<array{hosts: list<string>, source: string, medium: ?string}> $overrides
      */
-    private function database(array $snowplow): ReferrerDatabase
+    private function database(array $snowplow, array $overrides = []): ReferrerDatabase
     {
-        return $this->databaseFromJson((string) json_encode($snowplow));
+        return $this->databaseFromJson((string) json_encode($snowplow), $overrides);
     }
 
-    private function databaseFromJson(string $snowplowJson): ReferrerDatabase
+    /**
+     * @param list<array{hosts: list<string>, source: string, medium: ?string}> $overrides
+     */
+    private function databaseFromJson(string $snowplowJson, array $overrides = []): ReferrerDatabase
     {
         $file = $this->dir . '/referrers.php';
         (new ReferrerDatabase($file))->build($snowplowJson);
 
-        return new ReferrerDatabase($file);
+        return new ReferrerDatabase($file, $overrides);
     }
 }
