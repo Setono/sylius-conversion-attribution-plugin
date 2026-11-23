@@ -15,7 +15,7 @@
         "doctrine/persistence": "^2.0 || ^3.0",
         "psr/log": "^1.0 || ^2.0 || ^3.0",
         "setono/bot-detection-bundle": "^1.13",
-        "setono/client-bundle": "^1.1",
+        "setono/client-bundle": "^1.2.1",
         "setono/composite-compiler-pass": "^1.1",
         "setono/doctrine-orm-trait": "^1.0",
         "sylius/core": "^1.0",

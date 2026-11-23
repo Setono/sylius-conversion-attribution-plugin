@@ -15,5 +15,8 @@ interface CustomerInterface extends BaseCustomerInterface
      */
     public function getClientIds(): array;
 
-    public function addClientId(string $clientId): void;
+    /**
+     * Returns false if the customer already had the client id
+     */
+    public function addClientId(string $clientId): bool;
 }

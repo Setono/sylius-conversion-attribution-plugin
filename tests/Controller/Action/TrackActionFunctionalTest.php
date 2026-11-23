@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Setono\SyliusConversionAttributionPlugin\Tests\Controller\Action;
 
+use Setono\Client\Cookie as ClientCookie;
 use Setono\SyliusConversionAttributionPlugin\CacheWarmer\ReferrersCacheWarmer;
 use Setono\SyliusConversionAttributionPlugin\Model\SourceInterface;
 use Setono\SyliusConversionAttributionPlugin\Repository\SourceRepositoryInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Tracks page views through the test application, with the default configuration plus the partner.example
@@ -44,6 +47,46 @@ final class TrackActionFunctionalTest extends WebTestCase
         self::assertInstanceOf(SourceInterface::class, $source);
 
         self::assertSame($expected, [$source->getSource(), $source->getMedium(), $source->getCampaign()]);
+    }
+
+    /**
+     * client-bundle ignores a client id cookie the columns can't hold, e.g. one edited by hand, so the page view is
+     * stored under the new client id the browser gets
+     *
+     * @test
+     *
+     * @dataProvider unstorableClientIds
+     */
+    public function it_stores_the_page_view_under_a_new_client_id_when_the_cookie_holds_one_that_cannot_be_stored(string $clientId): void
+    {
+        $client = self::createClient(server: ['HTTP_USER_AGENT' => self::USER_AGENT]);
+        $client->getCookieJar()->set(new Cookie('setono_client_id', (string) new ClientCookie($clientId)));
+
+        $page = 'https://shop.example/unstorable-client-id';
+        $client->jsonRequest('POST', '/track', ['page' => $page]);
+        self::assertResponseStatusCodeSame(204);
+
+        $sourceRepository = self::getContainer()->get(SourceRepositoryInterface::class);
+        self::assertInstanceOf(SourceRepositoryInterface::class, $sourceRepository);
+        $source = $sourceRepository->findOneBy(['page' => $page]);
+        self::assertInstanceOf(SourceInterface::class, $source);
+
+        $cookie = $client->getCookieJar()->allValues('http://localhost/')['setono_client_id'] ?? null;
+        self::assertIsString($cookie);
+        $newClientId = ClientCookie::fromString($cookie)->clientId;
+        self::assertTrue(Uuid::isValid($newClientId));
+        self::assertSame($newClientId, $source->getClientId());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unstorableClientIds(): iterable
+    {
+        yield 'longer than the columns' => [str_repeat('a', 300)];
+
+        // PHP url-decodes cookie values, so a cookie holding %FF gives this byte
+        yield 'not UTF-8' => ["client-id-\xFF"];
     }
 
     /**

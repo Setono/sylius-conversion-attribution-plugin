@@ -48,6 +48,8 @@ form, with a remember-me cookie, or when Sylius logs a customer in right after r
 The client ids are read when an order is attributed, so `--all` also counts browsers a customer first checked out
 from or logged in on after the order, with their page views from before its checkout. Implementing `CustomerInterface` on your `Customer` entity is optional: drop it, and its
 column, if you don't want a customer's browsers linked, and only the browser an order was checked out from counts.
+`CustomerInterface::addClientId()` now returns `bool`: whether it added the client id. `CustomerTrait` does, so only a
+`Customer` that implements the method itself needs to change.
 
 Attributions are recorded by a new command, `setono:sylius-conversion-attribution:attribute`, not during the
 checkout, so recording one can never make a checkout fail. Schedule it every few minutes; until it has run,
@@ -151,9 +153,11 @@ If you redefine, decorate or extend these services, update the arguments:
 - `ClientInformation\ClientInformation`, `Resolver\ClientInformationResolver` and
   `Resolver\ClientInformationResolverInterface` (and the service of the same name). To change how the
   traffic source is resolved, add a source matcher (tag `setono_sylius_conversion_attribution.source_matcher`);
-  the client id comes from `setono/client-bundle`'s client context. To change it, decorate
-  `setono_client.client_context.default` (as client-bundle does) rather than pointing the
-  `ClientContextInterface` alias elsewhere, which the plugin doesn't read.
+  the client id comes from `setono/client-bundle`'s client context, which the plugin injects as
+  `ClientContextInterface`, like client-bundle 2.x's own services. To change it, decorate
+  `setono_client.client_context.default`, as client-bundle's README says, rather than pointing the
+  `ClientContextInterface` alias elsewhere: client-bundle 1.x writes the cookie from
+  `setono_client.client_context.default`, so the cookie wouldn't get your client id.
 - `Parser\Referrer`, `Parser\ReferrerParser` and `Parser\ReferrerParserInterface` (and their services),
   and the `setono_sylius_conversion_attribution.referrers.cache.adapter` cache service. To look referrers
   up differently, point the `Referrer\ReferrerDatabaseInterface` alias at your own implementation.
@@ -164,6 +168,9 @@ If you redefine, decorate or extend these services, update the arguments:
 
 ## Dependencies
 
+- `setono/client-bundle` ^1.2.1 is required. It gives a browser whose cookie holds a client id the database can't
+  store (empty, longer than 255 bytes or not UTF-8, e.g. a cookie edited by hand) a new client id, so tracking, the
+  checkout and logins can't fail on it.
 - `symfony/asset` is required (the script's URL is generated through the `assets.packages` service).
 - `symfony/deprecation-contracts` is no longer required.
 - `symfony/cache` is no longer required.

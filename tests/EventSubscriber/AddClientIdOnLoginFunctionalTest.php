@@ -16,6 +16,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Uid\Uuid;
 
 final class AddClientIdOnLoginFunctionalTest extends WebTestCase
 {
@@ -99,6 +100,41 @@ final class AddClientIdOnLoginFunctionalTest extends WebTestCase
         self::logIn($client);
 
         self::assertSame(['laptop'], self::storedClientIds());
+    }
+
+    /**
+     * client-bundle ignores a client id cookie the columns can't hold, e.g. one edited by hand, so the customer is
+     * linked to the new client id the browser gets
+     *
+     * @test
+     *
+     * @dataProvider unstorableClientIds
+     */
+    public function it_links_a_new_client_id_when_the_cookie_holds_one_that_cannot_be_stored(string $clientId): void
+    {
+        $client = self::createClient();
+        self::channel();
+        self::shopUser();
+
+        self::useBrowser($client, $clientId);
+        self::logIn($client);
+
+        $cookie = $client->getCookieJar()->allValues('http://localhost/')['setono_client_id'] ?? null;
+        self::assertIsString($cookie);
+        $newClientId = ClientCookie::fromString($cookie)->clientId;
+        self::assertTrue(Uuid::isValid($newClientId));
+        self::assertSame([$newClientId], self::storedClientIds());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unstorableClientIds(): iterable
+    {
+        yield 'longer than the columns' => [str_repeat('a', 300)];
+
+        // PHP url-decodes cookie values, so a cookie holding %FF gives this byte
+        yield 'not UTF-8' => ["client-id-\xFF"];
     }
 
     /**

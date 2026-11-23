@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Setono\SyliusConversionAttributionPlugin\Tests\DependencyInjection;
 
 use Matthias\SymfonyDependencyInjectionTest\PhpUnit\AbstractExtensionTestCase;
+use Setono\ClientBundle\Context\ClientContextInterface;
 use Setono\SyliusConversionAttributionPlugin\Attribution\OrderAttributorInterface;
 use Setono\SyliusConversionAttributionPlugin\Command\AttributeCommand;
 use Setono\SyliusConversionAttributionPlugin\Controller\Action\TrackAction;
 use Setono\SyliusConversionAttributionPlugin\DependencyInjection\SetonoSyliusConversionAttributionExtension;
+use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdOnLoginSubscriber;
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber;
 use Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddJavascriptSubscriber;
 use Setono\SyliusConversionAttributionPlugin\Model\Attribution;
@@ -58,20 +60,23 @@ final class SetonoSyliusConversionAttributionExtensionTest extends AbstractExten
     }
 
     /**
-     * A host that points the ClientContextInterface alias at its own context, instead of decorating the default
-     * one like client-bundle does, would otherwise track page views and stamp orders with different client ids
+     * Page views, orders and logins must get the client id from the same client context, or they could get different
+     * ones. It's the interface, which is what client-bundle 2.x's own services inject: there,
+     * setono_client.client_context.default skips the cache that gives a request one client, so a visitor without a
+     * cookie would get another client id than the cookie. In client-bundle 1.x, the interface is an alias of that id
      *
      * @test
      */
-    public function it_reads_the_client_id_of_page_views_and_orders_from_the_same_client_context(): void
+    public function it_reads_the_client_id_of_page_views_orders_and_logins_from_the_client_context_interface(): void
     {
         $this->setParameter('kernel.bundles', ['SetonoTagBagBundle' => SetonoTagBagBundle::class]);
 
         $this->load();
 
-        $clientContextReference = new Reference('setono_client.client_context.default');
+        $clientContextReference = new Reference(ClientContextInterface::class);
         $this->assertContainerBuilderHasServiceDefinitionWithArgument(TrackAction::class, 3, $clientContextReference);
         $this->assertContainerBuilderHasServiceDefinitionWithArgument(AddClientIdSubscriber::class, 0, $clientContextReference);
+        $this->assertContainerBuilderHasServiceDefinitionWithArgument(AddClientIdOnLoginSubscriber::class, 0, $clientContextReference);
     }
 
     /**
