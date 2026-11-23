@@ -23,9 +23,10 @@ final class CustomerTraitTest extends TestCase
     public function it_adds_each_client_id_once(): void
     {
         $customer = new Customer();
-        $customer->addClientId('a');
-        $customer->addClientId('b');
-        $customer->addClientId('a');
+
+        self::assertTrue($customer->addClientId('a'));
+        self::assertTrue($customer->addClientId('b'));
+        self::assertFalse($customer->addClientId('a'));
 
         self::assertSame(['a', 'b'], $customer->getClientIds());
     }

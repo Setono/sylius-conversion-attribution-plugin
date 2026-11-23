@@ -3,13 +3,13 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service id="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdSubscriber">
-            <argument type="service" id="setono_client.client_context.default"/>
+            <argument type="service" id="Setono\ClientBundle\Context\ClientContextInterface"/>
 
             <tag name="kernel.event_subscriber"/>
         </service>
 
         <service id="Setono\SyliusConversionAttributionPlugin\EventSubscriber\AddClientIdOnLoginSubscriber">
-            <argument type="service" id="setono_client.client_context.default"/>
+            <argument type="service" id="Setono\ClientBundle\Context\ClientContextInterface"/>
             <argument type="service" id="sylius.section_resolver.uri_based"/>
             <argument type="service" id="doctrine"/>
 

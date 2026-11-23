@@ -64,12 +64,9 @@ final class AddClientIdOnLoginSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $clientId = $this->clientContext->getClient()->id;
-        if (in_array($clientId, $customer->getClientIds(), true)) {
+        if (!$customer->addClientId($this->clientContext->getClient()->id)) {
             return;
         }
-
-        $customer->addClientId($clientId);
 
         // Nothing else saves it for sure: Sylius only saves a login every so often
         $manager = $this->getManager($customer);

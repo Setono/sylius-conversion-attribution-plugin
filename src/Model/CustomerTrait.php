@@ -24,14 +24,18 @@ trait CustomerTrait
         return $this->clientIds ?? [];
     }
 
-    public function addClientId(string $clientId): void
+    public function addClientId(string $clientId): bool
     {
         if (null === $this->clientIds) {
             $this->clientIds = [];
         }
 
-        if (!in_array($clientId, $this->clientIds, true)) {
-            $this->clientIds[] = $clientId;
+        if (in_array($clientId, $this->clientIds, true)) {
+            return false;
         }
+
+        $this->clientIds[] = $clientId;
+
+        return true;
     }
 }
